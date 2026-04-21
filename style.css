@@ -22,11 +22,25 @@ body {
 }
 
 /* iOS/macOS 26 Liquid Glass Aesthetics */
-.app-header {
+.app-header, .liquid-glass {
   background: var(--glass-bg);
   backdrop-filter: blur(40px) saturate(200%);
   -webkit-backdrop-filter: blur(40px) saturate(200%);
   transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.modal-overlay {
+  transition: opacity 0.3s ease;
+  opacity: 0;
+}
+.modal-overlay.show { opacity: 1; }
+
+.modal-content {
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform: scale(0.95) translateY(20px);
+}
+.modal-overlay.show .modal-content {
+  transform: scale(1) translateY(0);
 }
 
 .glass-panel {

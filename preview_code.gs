@@ -87,6 +87,9 @@ function getInitialData() {
       const today = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd");
       
       const parsedLogs = logsData.map(row => {
+        let timestampObj = row[0];
+        if (!(timestampObj instanceof Date)) timestampObj = new Date(row[0]);
+
         let dateObj = row[1];
         if (!(dateObj instanceof Date)) dateObj = new Date(row[1]);
         
@@ -98,7 +101,7 @@ function getInitialData() {
         }
         
         return {
-          date: !isNaN(dateObj.getTime()) ? Utilities.formatDate(dateObj, "GMT+7", "dd/MM/yyyy HH:mm") : row[1],
+          date: !isNaN(timestampObj.getTime()) ? Utilities.formatDate(timestampObj, "GMT+7", "dd/MM/yyyy HH:mm") : row[1],
           tglStr: tglStr,
           gateId: row[2],
           lokasi: gateMap[row[2]] || "Lainnya",

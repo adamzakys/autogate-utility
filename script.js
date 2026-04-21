@@ -313,7 +313,7 @@ let currentStream = null;
 
 // Start WebCam
 btnOpenCam.addEventListener('click', async () => {
-  cameraModal.classList.remove('hidden');
+  openModalAnim(cameraModal);
   try {
     currentStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment' },
@@ -333,7 +333,7 @@ function stopWebCam() {
     videoElement.srcObject = null;
     currentStream = null;
   }
-  cameraModal.classList.add('hidden');
+  closeModalAnim(cameraModal);
 }
 btnCloseCam.addEventListener('click', stopWebCam);
 
@@ -593,11 +593,11 @@ function openIssueModal(index) {
   }
   
   lucide.createIcons();
-  modal.classList.remove('hidden');
+  openModalAnim(modal);
 }
 
 function closeIssueModal() {
-  document.getElementById('issueModal').classList.add('hidden');
+  closeModalAnim(document.getElementById('issueModal'));
 }
 window.openIssueModal = openIssueModal;
 window.closeIssueModal = closeIssueModal;
@@ -623,9 +623,85 @@ document.getElementById('btnAddHwDaily').addEventListener('click', () => addHwSe
 document.getElementById('btnAddHwMaint').addEventListener('click', () => addHwSelect('hw-container-maint'));
 
 // ================= UTILITIES & EXPORTS =================
+function openModalAnim(modal) {
+  modal.classList.remove('hidden');
+  if (modal.id === 'cameraModal') modal.classList.add('flex');
+  void modal.offsetWidth; // trigger reflow
+  modal.classList.add('show');
+}
+
+function closeModalAnim(modal) {
+  modal.classList.remove('show');
+  setTimeout(() => {
+    modal.classList.add('hidden');
+    if (modal.id === 'cameraModal') modal.classList.remove('flex');
+  }, 300);
+}
+
 window.downloadReport = function(type) {
   const url = `${GAS_URL}?action=export&type=${type}`;
   window.open(url, '_blank');
+};
+
+window.downloadPDFReport = async function(type, event) {
+  const btn = event.currentTarget;
+  const oldHtml = btn.innerHTML;
+  btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Memuat...`;
+  btn.disabled = true;
+
+  try {
+    const url = `${GAS_URL}?action=export&type=${type}`;
+    const response = await fetch(url);
+    const csvText = await response.text();
+    
+    const rows = [];
+    const lines = csvText.split('\n');
+    for (let line of lines) {
+      if(!line.trim()) continue;
+      const regex = /"([^"]*)"/g;
+      const matches = [];
+      let match;
+      while ((match = regex.exec(line)) !== null) {
+        matches.push(match[1]);
+      }
+      rows.push(matches);
+    }
+    
+    if (!window.jspdf || !window.jspdf.jsPDF) throw new Error("jsPDF not loaded");
+    const doc = new window.jspdf.jsPDF('landscape');
+    const title = type === 'maint' ? 'Laporan Maintenance Autogate' : 'Laporan Daily Check Autogate';
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text(title, 14, 20);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, 28);
+    
+    if (rows.length > 0) {
+      const headers = rows.shift();
+      doc.autoTable({
+        head: [headers],
+        body: rows,
+        startY: 35,
+        theme: 'grid',
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [220, 38, 38] }
+      });
+    } else {
+      doc.text("Tidak ada data.", 14, 40);
+    }
+    
+    doc.save(`${title.replace(/ /g, '_')}.pdf`);
+  } catch (err) {
+    console.error(err);
+    alert("Gagal mengunduh PDF. Pastikan internet stabil.");
+  } finally {
+    btn.innerHTML = oldHtml;
+    btn.disabled = false;
+    lucide.createIcons();
+  }
 };
 
 document.addEventListener('keydown', (e) => {

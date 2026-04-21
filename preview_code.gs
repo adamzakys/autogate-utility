@@ -89,7 +89,9 @@ function getInitialData() {
           lokasi: gateMap[row[2]] || "Lainnya",
           hardware: row[3],
           status: row[4],
-          petugas: row[5]
+          petugas: row[5],
+          keterangan: row[6] || "-",
+          foto: row[7] || ""
         };
       });
 
@@ -127,7 +129,7 @@ function submitDailyCheck(formData, fileDataArray) {
       });
     }
 
-    const fileUrlStr = fileUrls.join("\n");
+    const fileUrlStr = fileUrls.join(", \n");
 
     const watermark = `Petugas: ${formData.petugas} | Gate: ${formData.gateId} | Lokasi: ${formData.lokasi} | Waktu: ${timestamp}`;
 

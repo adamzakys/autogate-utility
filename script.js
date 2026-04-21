@@ -89,7 +89,7 @@ async function fetchData(isInitial = false) {
 
 
   try {
-    const response = await fetch(GAS_URL);
+    const response = await fetch(`${GAS_URL}?t=${new Date().getTime()}`);
     if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
 
     const textData = await response.text();
@@ -125,8 +125,7 @@ async function fetchData(isInitial = false) {
 
     if (isInitial) {
       const startupText = document.getElementById('startupText');
-      if (startupText) startupText.textContent = "Gagal memuat data dari server.";
-      alert("Gagal memuat data awal dari server.");
+      if (startupText) startupText.textContent = "Gagal memuat data dari server. Anda sedang offline.";
       const overlay = document.getElementById('startupOverlay');
       if (overlay) {
         overlay.classList.add('opacity-0', 'pointer-events-none');
@@ -213,20 +212,22 @@ function applySessionFilter() {
   updateChart(pass, warn, fail);
 
   // Filter Recent Issues
-  const filteredIssues = data.recentIssues.filter(log => log.lokasi === sessionLokasi).slice(0, 5); // top 5
+  window.currentFilteredIssues = data.recentIssues.filter(log => log.lokasi === sessionLokasi).slice(0, 5); // top 5
+  const filteredIssues = window.currentFilteredIssues;
   const container = document.getElementById('recent-issues-container');
   if (filteredIssues.length > 0) {
     let html = '';
-    filteredIssues.forEach(iss => {
+    filteredIssues.forEach((iss, index) => {
       const isFail = iss.status === 'FAIL';
       const color = isFail ? 'red' : 'yellow';
       html += `
-        <div class="bg-white p-3 rounded-xl border-l-4 border-l-${color}-500 shadow-sm flex justify-between items-center border border-gray-100">
-          <div>
-            <p class="text-xs font-bold text-gray-800">${iss.gateId} <span class="text-gray-400 font-normal">| ${iss.hardware}</span></p>
-            <p class="text-[10px] text-gray-500 mt-0.5"><i data-lucide="clock" class="inline w-3 h-3"></i> ${iss.date} - ${iss.petugas}</p>
+        <div onclick="openIssueModal(${index})" class="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer flex justify-between items-center border border-slate-100 dark:border-slate-700 relative overflow-hidden">
+          <div class="absolute left-0 top-0 bottom-0 w-1 bg-${color}-500"></div>
+          <div class="pl-2">
+            <p class="text-xs font-bold text-gray-800 dark:text-slate-100">${iss.gateId} <span class="text-gray-400 dark:text-slate-500 font-normal">| ${iss.hardware}</span></p>
+            <p class="text-[10px] text-gray-500 dark:text-slate-400 mt-0.5"><i data-lucide="clock" class="inline w-3 h-3"></i> ${iss.date} - ${iss.petugas}</p>
           </div>
-          <span class="px-2 py-1 bg-${color}-50 text-${color}-700 text-[10px] font-bold rounded">${iss.status}</span>
+          <span class="px-2 py-1 bg-${color}-50 dark:bg-${color}-500/10 text-${color}-700 dark:text-${color}-400 text-[10px] font-bold rounded">${iss.status}</span>
         </div>
       `;
     });
@@ -389,7 +390,7 @@ function processImageWithWatermark(file, watermarkText) {
       img.onload = () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        const MAX_WIDTH = 1200;
+        const MAX_WIDTH = 800;
         let width = img.width, height = img.height;
         if (width > MAX_WIDTH) { height = Math.floor(height * (MAX_WIDTH / width)); width = MAX_WIDTH; }
         canvas.width = width; canvas.height = height;
@@ -404,7 +405,7 @@ function processImageWithWatermark(file, watermarkText) {
         ctx.fillStyle = 'white';
         ctx.fillText(watermarkText, padding, height - padding - 4);
 
-        resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+        resolve(canvas.toDataURL('image/jpeg', 0.6).split(',')[1]);
       };
       img.onerror = reject; img.src = e.target.result;
     };
@@ -508,3 +509,61 @@ async function sendPayload(payload, formElement, btnElement) {
     alert("Terjadi kesalahan jaringan: " + error.message);
   }
 }
+
+// ================= ISSUE MODAL LOGIC =================
+function openIssueModal(index) {
+  const iss = window.currentFilteredIssues[index];
+  if (!iss) return;
+  
+  const modal = document.getElementById('issueModal');
+  const body = document.getElementById('issueModalBody');
+  const photoContainer = document.getElementById('issuePhotoContainer');
+  const btnLoadPhoto = document.getElementById('btnLoadIssuePhoto');
+  
+  body.innerHTML = `
+    <div class="grid grid-cols-2 gap-3">
+      <div><span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Gate</span><span class="font-semibold text-slate-800 dark:text-slate-100">${iss.gateId}</span></div>
+      <div><span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Hardware</span><span class="font-semibold text-slate-800 dark:text-slate-100">${iss.hardware}</span></div>
+      <div><span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Petugas</span><span class="font-semibold text-slate-800 dark:text-slate-100">${iss.petugas}</span></div>
+      <div><span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Waktu</span><span class="font-semibold text-slate-800 dark:text-slate-100">${iss.date}</span></div>
+    </div>
+    <div class="mt-3">
+      <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Keterangan / Tindakan</span>
+      <p class="text-sm bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 p-2.5 rounded-lg text-slate-700 dark:text-slate-300 min-h-[60px]">${iss.keterangan || 'Tidak ada keterangan tambahan.'}</p>
+    </div>
+  `;
+  
+  photoContainer.classList.add('hidden');
+  photoContainer.innerHTML = '';
+  
+  if (iss.foto && iss.foto.trim() !== '') {
+    btnLoadPhoto.classList.remove('hidden');
+    btnLoadPhoto.onclick = () => {
+      btnLoadPhoto.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Memuat Foto...`;
+      setTimeout(() => {
+        const urls = iss.foto.split(',').map(u => u.trim()).filter(u => u);
+        let imgHtml = '';
+        urls.forEach(url => {
+          // Attempting to extract ID to render a thumbnail if it's a Drive URL, but for simplicity we will just set src
+          // A safer way to view drive images is to use the direct thumbnail URL, but since it's an internal app, we rely on the URL provided.
+          imgHtml += `<a href="${url}" target="_blank" class="block"><img src="${url}" class="w-full h-auto rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm mb-2" alt="Foto Isu" onerror="this.outerHTML='<div class=\\'p-3 text-xs text-red-500 bg-red-50 dark:bg-red-900/20 rounded-lg text-center\\'>Gambar tidak dapat dimuat langsung. <a href=\\'${url}\\' target=\\'_blank\\' class=\\'underline\\'>Buka link</a></div>'"></a>`;
+        });
+        photoContainer.innerHTML = imgHtml;
+        photoContainer.classList.remove('hidden');
+        btnLoadPhoto.classList.add('hidden');
+      }, 300); // small delay to simulate loading
+    };
+    btnLoadPhoto.innerHTML = `<i data-lucide="image" class="w-4 h-4"></i> Tampilkan Foto Terbaru`;
+  } else {
+    btnLoadPhoto.classList.add('hidden');
+  }
+  
+  lucide.createIcons();
+  modal.classList.remove('hidden');
+}
+
+function closeIssueModal() {
+  document.getElementById('issueModal').classList.add('hidden');
+}
+window.openIssueModal = openIssueModal;
+window.closeIssueModal = closeIssueModal;

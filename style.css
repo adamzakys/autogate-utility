@@ -22,11 +22,25 @@ body {
 }
 
 /* iOS/macOS 26 Liquid Glass Aesthetics */
-.app-header, .liquid-glass {
+.app-header, .liquid-glass, .glass-panel {
   background: var(--glass-bg);
   backdrop-filter: blur(40px) saturate(200%);
   -webkit-backdrop-filter: blur(40px) saturate(200%);
-  transition: background 0.3s ease, border-color 0.3s ease;
+  border: 1px solid var(--glass-border);
+  border-top-color: rgba(255, 255, 255, 0.6);
+  border-left-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+  transition: all 0.3s ease;
+}
+
+.dark .app-header, .dark .liquid-glass, .dark .glass-panel {
+  border-top-color: rgba(255, 255, 255, 0.15);
+  border-left-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+.glass-panel {
+  border-radius: 20px;
 }
 
 .modal-overlay {
@@ -41,16 +55,6 @@ body {
 }
 .modal-overlay.show .modal-content {
   transform: scale(1) translateY(0);
-}
-
-.glass-panel {
-  background: var(--glass-bg);
-  backdrop-filter: blur(30px) saturate(180%);
-  -webkit-backdrop-filter: blur(30px) saturate(180%);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
-  border-radius: 20px;
-  transition: all 0.3s ease;
 }
 
 .ios-input {

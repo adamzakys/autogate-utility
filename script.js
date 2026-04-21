@@ -55,12 +55,12 @@ function navigateTo(pageId) {
 
   if (pageId === 'page-login') {
     bottomNav.classList.add('hidden');
-    document.getElementById('btnLogout').classList.add('hidden');
     bottomNav.classList.remove('flex');
+    document.getElementById('btnLogout').classList.add('hidden');
   } else {
     bottomNav.classList.remove('hidden');
-    document.getElementById('btnLogout').classList.remove('hidden');
     bottomNav.classList.add('flex');
+    document.getElementById('btnLogout').classList.remove('hidden');
   }
 }
 

@@ -186,12 +186,11 @@ function applySessionFilter() {
   maintGateSelect.innerHTML = gateOpts;
 
   // Populate Hardware
-  const hwSelect = document.getElementById("hardware");
-  const maintHwSelect = document.getElementById("maint-hardware");
-  let hwOpts = '<option value="" disabled selected>Pilih Hardware...</option>';
-  data.hardwares.forEach(hw => hwOpts += `<option value="${hw}">${hw}</option>`);
-  hwSelect.innerHTML = hwOpts;
-  maintHwSelect.innerHTML = hwOpts;
+  window.hardwareOptions = '<option value="" disabled selected>Pilih Hardware...</option>';
+  data.hardwares.forEach(hw => window.hardwareOptions += `<option value="${hw}">${hw}</option>`);
+  document.querySelectorAll('.hw-select').forEach(sel => {
+    sel.innerHTML = window.hardwareOptions;
+  });
 
   // Filter Dashboard Stats
   document.getElementById('dash-lokasi').textContent = sessionLokasi;
@@ -220,14 +219,18 @@ function applySessionFilter() {
     filteredIssues.forEach((iss, index) => {
       const isFail = iss.status === 'FAIL';
       const color = isFail ? 'red' : 'yellow';
+      const icon = isFail ? 'x-circle' : 'alert-triangle';
       html += `
-        <div onclick="openIssueModal(${index})" class="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer flex justify-between items-center border border-slate-100 dark:border-slate-700 relative overflow-hidden">
-          <div class="absolute left-0 top-0 bottom-0 w-1 bg-${color}-500"></div>
-          <div class="pl-2">
-            <p class="text-xs font-bold text-gray-800 dark:text-slate-100">${iss.gateId} <span class="text-gray-400 dark:text-slate-500 font-normal">| ${iss.hardware}</span></p>
-            <p class="text-[10px] text-gray-500 dark:text-slate-400 mt-0.5"><i data-lucide="clock" class="inline w-3 h-3"></i> ${iss.date} - ${iss.petugas}</p>
+        <div onclick="openIssueModal(${index})" class="bg-white dark:bg-slate-800 p-3.5 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center gap-3 border border-slate-100 dark:border-slate-700/60">
+          <div class="w-10 h-10 rounded-full bg-${color}-50 dark:bg-${color}-500/10 flex items-center justify-center shrink-0">
+            <i data-lucide="${icon}" class="w-5 h-5 text-${color}-500"></i>
           </div>
-          <span class="px-2 py-1 bg-${color}-50 dark:bg-${color}-500/10 text-${color}-700 dark:text-${color}-400 text-[10px] font-bold rounded">${iss.status}</span>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-bold text-gray-800 dark:text-slate-100 truncate">${iss.gateId}</p>
+            <p class="text-[11px] text-gray-500 dark:text-slate-400 truncate mt-0.5" title="${iss.hardware}">${iss.hardware}</p>
+            <p class="text-[10px] text-gray-400 dark:text-slate-500 mt-1"><i data-lucide="clock" class="inline w-3 h-3"></i> ${iss.date}</p>
+          </div>
+          <span class="px-2.5 py-1 bg-${color}-50 dark:bg-${color}-500/10 text-${color}-700 dark:text-${color}-400 text-[10px] font-bold rounded-lg border border-${color}-100 dark:border-${color}-800/30">${iss.status}</span>
         </div>
       `;
     });
@@ -239,6 +242,18 @@ function applySessionFilter() {
 }
 
 function updateChart(pass, warn, fail) {
+  const chartParent = document.getElementById('conditionChart').parentElement;
+  if (pass === 0 && warn === 0 && fail === 0) {
+    chartParent.innerHTML = `<div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400"><i data-lucide="inbox" class="w-8 h-8 mb-2 opacity-50"></i><p class="text-xs">Belum ada data hari ini</p></div><canvas id="conditionChart" class="hidden"></canvas>`;
+    lucide.createIcons();
+    if (conditionChartInstance) conditionChartInstance.destroy();
+    return;
+  } else {
+    if(chartParent.querySelector('div.absolute')) {
+      chartParent.innerHTML = `<canvas id="conditionChart"></canvas>`;
+    }
+  }
+
   const ctx = document.getElementById('conditionChart').getContext('2d');
   if (conditionChartInstance) conditionChartInstance.destroy();
 
@@ -437,7 +452,7 @@ document.getElementById('dailyCheckForm').addEventListener('submit', async (e) =
     petugas: sessionPetugas,
     lokasi: sessionLokasi,
     gateId: form.gateId.value,
-    hardware: form.hardware.value,
+    hardware: Array.from(document.querySelectorAll('#hw-container-daily .hw-select')).map(s => s.value).filter(v => v).join(', '),
     status: form.status.value,
     keterangan: form.keterangan.value
   };
@@ -479,7 +494,7 @@ document.getElementById('maintenanceForm').addEventListener('submit', async (e) 
     tglLapor: form.tglLapor.value,
     statusTiket: form.statusTiket.value,
     gateId: form.gateId.value,
-    hardware: form.hardware.value,
+    hardware: Array.from(document.querySelectorAll('#hw-container-maint .hw-select')).map(s => s.value).filter(v => v).join(', '),
     masalah: form.masalah.value,
     tindakan: form.tindakan.value,
     tglSelesai: form.tglSelesai.value
@@ -567,3 +582,23 @@ function closeIssueModal() {
 }
 window.openIssueModal = openIssueModal;
 window.closeIssueModal = closeIssueModal;
+
+// ================= DYNAMIC HARDWARE SELECTS =================
+function addHwSelect(containerId) {
+  const container = document.getElementById(containerId);
+  const div = document.createElement('div');
+  div.className = "ios-select-wrapper flex gap-2 hw-item items-center mt-2";
+  div.innerHTML = `
+    <select name="hardware" class="ios-input w-full font-medium hw-select" required>
+      ${window.hardwareOptions || '<option value="" disabled selected>Pilih Hardware...</option>'}
+    </select>
+    <button type="button" class="text-red-500 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg active:scale-95 transition-all shrink-0" onclick="this.parentElement.remove()">
+      <i data-lucide="minus-circle" class="w-5 h-5"></i>
+    </button>
+  `;
+  container.appendChild(div);
+  lucide.createIcons();
+}
+
+document.getElementById('btnAddHwDaily').addEventListener('click', () => addHwSelect('hw-container-daily'));
+document.getElementById('btnAddHwMaint').addEventListener('click', () => addHwSelect('hw-container-maint'));

@@ -53,7 +53,7 @@
 
 
   <!-- Main Scrollable Area -->
-  <main class="flex-1 overflow-y-auto w-full max-w-xl mx-auto p-4 pb-24 relative" id="app-container">
+  <main class="flex-1 overflow-y-auto w-full max-w-xl mx-auto p-4 pb-32 relative" id="app-container">
 
     <!-- ================= START / LOGIN PAGE ================= -->
     <section id="page-login" class="page-section animate-fade-in block h-full flex flex-col justify-center">
@@ -154,11 +154,14 @@
                 <option value="" disabled selected>Pilih Gate...</option>
               </select>
             </div>
-            <div class="ios-select-wrapper">
-              <select id="hardware" name="hardware" class="ios-input w-full font-medium" required>
-                <option value="" disabled selected>Pilih Hardware...</option>
-              </select>
+            <div id="hw-container-daily" class="space-y-2">
+              <div class="ios-select-wrapper flex gap-2 hw-item items-center">
+                <select name="hardware" class="ios-input w-full font-medium hw-select" required>
+                  <option value="" disabled selected>Pilih Hardware...</option>
+                </select>
+              </div>
             </div>
+            <button type="button" id="btnAddHwDaily" class="text-xs font-semibold text-blue-500 flex items-center gap-1.5 mt-2 p-1 active:scale-95 transition-transform"><i data-lucide="plus-circle" class="w-4 h-4"></i> Tambah Hardware Lain</button>
           </div>
         </div>
 
@@ -247,11 +250,14 @@
             </select>
           </div>
 
-          <div class="ios-select-wrapper">
-            <select id="maint-hardware" name="hardware" class="ios-input w-full font-medium" required>
-              <option value="" disabled selected>Pilih Hardware...</option>
-            </select>
+          <div id="hw-container-maint" class="space-y-2">
+            <div class="ios-select-wrapper flex gap-2 hw-item items-center">
+              <select name="hardware" class="ios-input w-full font-medium hw-select" required>
+                <option value="" disabled selected>Pilih Hardware...</option>
+              </select>
+            </div>
           </div>
+          <button type="button" id="btnAddHwMaint" class="text-xs font-semibold text-blue-500 flex items-center gap-1.5 p-1 active:scale-95 transition-transform"><i data-lucide="plus-circle" class="w-4 h-4"></i> Tambah Hardware Lain</button>
 
           <div>
             <textarea id="maint-masalah" name="masalah" rows="2" class="ios-input w-full" required placeholder="Deskripsi kendala..."></textarea>
@@ -301,7 +307,7 @@
   </main>
 
   <!-- Bottom Navigation Menu -->
-  <div id="bottomNav" class="hidden shrink-0 app-header border-t border-slate-200/50 dark:border-slate-700/50 flex justify-around items-center max-w-xl mx-auto w-full pb-safe pt-1 pb-3 px-2 z-40">
+  <div id="bottomNav" class="hidden fixed bottom-0 left-0 right-0 max-w-xl mx-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/50 dark:border-slate-700/50 flex justify-around items-center w-full pb-safe pt-2 pb-4 px-2 z-50 rounded-t-2xl shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.1)]">
     <button class="nav-btn text-red-600 dark:text-red-500 flex flex-col items-center p-2 w-16" data-target="page-dashboard">
       <i data-lucide="layout-dashboard" class="w-[22px] h-[22px] mb-1"></i>
       <span class="text-[10px] font-medium">Dashboard</span>

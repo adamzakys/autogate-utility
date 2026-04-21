@@ -47,6 +47,11 @@
           title="Reload Data">
           <i data-lucide="refresh-cw" class="w-4 h-4"></i>
         </button>
+        <button id="btnLogout"
+          class="hidden p-1.5 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-500 transition-colors active:scale-95 bg-slate-100 dark:bg-slate-800 rounded-full"
+          title="Keluar / Logout">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+        </button>
         <div id="connection-status"
           class="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400 px-2.5 py-1 rounded-full shadow-sm">
           <span class="relative flex h-2 w-2" id="statusDot">
@@ -334,13 +339,13 @@
         </div>
 
         <div class="space-y-3">
-          <button type="button" onclick="alert('Fitur segera hadir.')"
+          <button type="button" onclick="downloadReport('daily')"
             class="ios-btn-secondary flex items-center justify-center gap-2 py-3 w-full">
-            <i data-lucide="calendar" class="w-4 h-4"></i> Laporan Bulanan
+            <i data-lucide="download" class="w-4 h-4"></i> Unduh Laporan Daily Check
           </button>
-          <button type="button" onclick="alert('Fitur segera hadir.')"
+          <button type="button" onclick="downloadReport('maint')"
             class="ios-btn-secondary flex items-center justify-center gap-2 py-3 w-full">
-            <i data-lucide="calendar-range" class="w-4 h-4"></i> Pilih Range Tertentu
+            <i data-lucide="download" class="w-4 h-4"></i> Unduh Laporan Maintenance
           </button>
         </div>
       </div>

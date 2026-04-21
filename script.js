@@ -24,8 +24,8 @@ btnThemeToggle.addEventListener('click', () => {
 
 // Global State
 let globalData = null;
-let sessionPetugas = "";
-let sessionLokasi = "";
+let sessionPetugas = localStorage.getItem('sessionPetugas') || "";
+let sessionLokasi = localStorage.getItem('sessionLokasi') || "";
 
 // ================= NAVIGATION LOGIC =================
 const navBtns = document.querySelectorAll('.nav-btn');
@@ -55,9 +55,11 @@ function navigateTo(pageId) {
 
   if (pageId === 'page-login') {
     bottomNav.classList.add('hidden');
+    document.getElementById('btnLogout').classList.add('hidden');
     bottomNav.classList.remove('flex');
   } else {
     bottomNav.classList.remove('hidden');
+    document.getElementById('btnLogout').classList.remove('hidden');
     bottomNav.classList.add('flex');
   }
 }
@@ -100,6 +102,10 @@ async function fetchData(isInitial = false) {
 
     if (isInitial) {
       populateStartPage(data);
+      if (sessionPetugas && sessionLokasi) {
+        applySessionFilter();
+        navigateTo('page-dashboard');
+      }
     } else if (sessionPetugas && sessionLokasi) {
       // Refresh UI if already logged in
       applySessionFilter();
@@ -165,9 +171,20 @@ document.getElementById('startForm').addEventListener('submit', (e) => {
 
   sessionPetugas = pet;
   sessionLokasi = lok;
+  localStorage.setItem('sessionPetugas', pet);
+  localStorage.setItem('sessionLokasi', lok);
 
   applySessionFilter();
   navigateTo('page-dashboard');
+});
+
+// Logout Logic
+document.getElementById('btnLogout').addEventListener('click', () => {
+  if (confirm("Apakah Anda yakin ingin keluar dari sesi ini?")) {
+    localStorage.removeItem('sessionPetugas');
+    localStorage.removeItem('sessionLokasi');
+    location.reload();
+  }
 });
 
 
@@ -604,3 +621,24 @@ function addHwSelect(containerId) {
 
 document.getElementById('btnAddHwDaily').addEventListener('click', () => addHwSelect('hw-container-daily'));
 document.getElementById('btnAddHwMaint').addEventListener('click', () => addHwSelect('hw-container-maint'));
+
+// ================= UTILITIES & EXPORTS =================
+window.downloadReport = function(type) {
+  const url = `${GAS_URL}?action=export&type=${type}`;
+  window.open(url, '_blank');
+};
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeIssueModal();
+    if (typeof stopWebCam === 'function') stopWebCam();
+  }
+});
+
+document.getElementById('issueModal').addEventListener('click', (e) => {
+  if (e.target.id === 'issueModal') closeIssueModal();
+});
+
+document.getElementById('cameraModal').addEventListener('click', (e) => {
+  if (e.target.id === 'cameraModal') stopWebCam();
+});

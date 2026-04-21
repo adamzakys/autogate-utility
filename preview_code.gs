@@ -9,6 +9,18 @@ const FOLDER_ID = "1wy0nUvvf0ANSqu38_J_VLRl13LjgroGt";
  */
 function doGet(e) {
   try {
+    if (e.parameter && e.parameter.action === 'export') {
+      const ss = SpreadsheetApp.openById(SS_ID);
+      const sheetName = e.parameter.type === 'maint' ? "LOG_MAINTENANCE" : "LOG_DAILY_CHECK";
+      const sheet = ss.getSheetByName(sheetName);
+      if (!sheet) throw new Error("Sheet not found");
+      const data = sheet.getDataRange().getDisplayValues();
+      const csvContent = data.map(row => row.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(",")).join("\n");
+      return ContentService.createTextOutput(csvContent)
+        .setMimeType(ContentService.MimeType.CSV)
+        .downloadAsFile(sheetName + ".csv");
+    }
+
     const data = getInitialData();
     return ContentService.createTextOutput(JSON.stringify(data))
       .setMimeType(ContentService.MimeType.JSON);
@@ -132,7 +144,7 @@ function submitDailyCheck(formData, fileDataArray) {
       });
     }
 
-    const fileUrlStr = fileUrls.join(", \n");
+    const fileUrlStr = fileUrls.join(" ,");
 
     const watermark = `Petugas: ${formData.petugas} | Gate: ${formData.gateId} | Lokasi: ${formData.lokasi} | Waktu: ${timestamp}`;
 

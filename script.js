@@ -1,127 +1,295 @@
-// script.js
-let appData = { hardware: [], gates: [], officers: [], issues: [] };
-let selectedPhotos = [];
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzhzU1DsJ5Y6dX6RGs09-ZWJvVB6mTEv0tYjwfCQP9myHrdgkWUqEtLA44lIJYDnxaLnQ/exec";
 
-// Fungsi utama bikin form dinamis
-function renderChecker() {
-    const container = document.getElementById('view-container');
-    
-    // 1. Ambil kategori unik dari hardware (misal: CCTV, Mechanical, dll)
-    const categories = [...new Set(appData.hardware.map(item => item.kategori))];
+lucide.createIcons();
+let conditionChartInstance = null;
+let currentPhotoFile = null;
 
-    let html = `
-        <div class="p-4 animate-fade-in pb-20">
-            <h1 class="text-2xl font-black mb-6">Daily Check</h1>
-            <div class="card mb-6 bg-primary_light border-primary/20">
-                <p class="text-[10px] font-bold text-primary uppercase">Gate Aktif</p>
-                <p class="font-bold">${document.getElementById('select-gate')?.value || 'Belum Pilih Gate'}</p>
-            </div>
-            <form id="main-form" onsubmit="handleFormSubmit(event)">
-    `;
+// ================= NAVIGATION LOGIC =================
+const navBtns = document.querySelectorAll('.nav-btn');
+const pages = document.querySelectorAll('.page-section');
 
-    // 2. Looping per Kategori
-    categories.forEach(cat => {
-        html += `
-            <div class="mb-8">
-                <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">${cat}</h3>
-                <div class="space-y-3">
-        `;
-
-        // 3. Looping Alat di dalam kategori tersebut
-        const items = appData.hardware.filter(h => h.kategori === cat);
-        items.forEach(item => {
-            html += `
-                <div class="card flex flex-col gap-3">
-                    <p class="font-bold text-sm text-slate-700">${item.nama}</p>
-                    <div class="flex gap-2">
-                        ${['Normal', 'Warning', 'Rusak/Error'].map(status => `
-                            <label class="flex-1">
-                                <input type="radio" name="hw-${item.id}" value="${status}" class="hidden peer" required>
-                                <div class="text-[10px] font-bold text-center p-2 rounded-xl border-2 border-slate-100 text-slate-400 
-                                     peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white transition-all cursor-pointer uppercase">
-                                    ${status}
-                                </div>
-                            </label>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-        });
-
-        html += `</div></div>`;
+navBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    // Reset all buttons
+    navBtns.forEach(b => {
+      b.classList.remove('text-red-600');
+      b.classList.add('text-gray-400');
     });
+    // Set active button
+    btn.classList.remove('text-gray-400');
+    btn.classList.add('text-red-600');
 
-    // 4. Tambah bagian Keterangan & Foto
-    html += `
-                <div class="card mb-6">
-                    <label class="block text-xs font-bold text-slate-500 mb-2 uppercase">Keterangan Tambahan</label>
-                    <textarea id="form-ket" class="w-full bg-slate-50 border-none rounded-xl p-3 text-sm" rows="3" placeholder="Catatan lapangan..."></textarea>
-                </div>
+    // Hide all pages
+    pages.forEach(p => {
+      p.classList.add('hidden');
+      p.classList.remove('block');
+    });
+    
+    // Show target page
+    const targetId = btn.getAttribute('data-target');
+    const targetPage = document.getElementById(targetId);
+    targetPage.classList.remove('hidden');
+    targetPage.classList.add('block');
+  });
+});
 
-                <div class="card mb-6">
-                    <label class="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-widest">Dokumentasi</label>
-                    <div id="preview-foto" class="flex gap-2 overflow-x-auto mb-3"></div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button type="button" onclick="openCameraModal('daily')" class="btn-secondary">Kamera</button>
-                        <button type="button" onclick="document.getElementById('file-input').click()" class="btn-secondary">Galeri</button>
-                    </div>
-                    <input type="file" id="file-input" class="hidden" multiple accept="image/*" onchange="handleFile(event)">
-                </div>
+// ================= DATA FETCHING =================
+document.addEventListener("DOMContentLoaded", () => {
+  fetchData();
+});
 
-                <button type="submit" class="w-full bg-primary text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all">SUBMIT DATA</button>
-            </form>
-        </div>
-    `;
+async function fetchData() {
+  const syncText = document.getElementById('syncText');
+  const syncLoader = document.querySelector('.loader-mini');
+  
+  syncText.textContent = "Syncing...";
+  syncText.classList.replace('text-green-500', 'text-gray-400');
+  syncLoader.classList.remove('hidden');
 
-    container.innerHTML = html;
+  try {
+    const response = await fetch(GAS_URL);
+    if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+    
+    const textData = await response.text();
+    const data = JSON.parse(textData);
+    if (data.error) throw new Error(data.error);
+
+    populateDropdowns(data);
+    updateDashboard(data);
+    
+    syncText.textContent = "Online";
+    syncText.classList.replace('text-gray-400', 'text-green-500');
+    syncLoader.classList.add('hidden');
+  } catch (error) {
+    console.error("Fetch Error:", error);
+    syncText.textContent = "Offline / Error";
+    syncText.classList.replace('text-gray-400', 'text-red-500');
+    syncLoader.classList.add('hidden');
+    alert("Gagal memuat data dari server. Pastikan URL GAS benar.");
+  }
 }
 
-// script.js (Lanjutan)
+function populateDropdowns(data) {
+  // Populate Petugas / Teknisi
+  const petugasSelect = document.getElementById("petugas");
+  const teknisiSelect = document.getElementById("maint-teknisi");
+  let officerOpts = '<option value="" disabled selected>Pilih...</option>';
+  data.officers.forEach(name => officerOpts += `<option value="${name}">${name}</option>`);
+  petugasSelect.innerHTML = officerOpts;
+  teknisiSelect.innerHTML = officerOpts;
 
-async function handleFormSubmit(event) {
-    event.preventDefault();
-    
-    const gateId = document.getElementById('select-gate')?.value;
-    if (!gateId) return Swal.fire('Error', 'Pilih Gate terlebih dahulu!', 'error');
+  // Populate Gate
+  const gateSelect = document.getElementById("gateId");
+  const maintGateSelect = document.getElementById("maint-gateId");
+  let gateOpts = '<option value="" disabled selected>Pilih Gate...</option>';
+  data.gates.forEach(g => gateOpts += `<option value="${g.id}">${g.id} - ${g.nama}</option>`);
+  gateSelect.innerHTML = gateOpts;
+  maintGateSelect.innerHTML = gateOpts;
 
-    // Tampilkan Loading
-    document.getElementById('loading-screen').classList.remove('hidden');
+  // Populate Hardware
+  const hwSelect = document.getElementById("hardware");
+  const maintHwSelect = document.getElementById("maint-hardware");
+  let hwOpts = '<option value="" disabled selected>Pilih Hardware...</option>';
+  data.hardwares.forEach(hw => hwOpts += `<option value="${hw}">${hw}</option>`);
+  hwSelect.innerHTML = hwOpts;
+  maintHwSelect.innerHTML = hwOpts;
+}
 
-    // 1. Kumpulkan semua hasil pengecekan hardware
-    const checks = [];
-    appData.hardware.forEach(hw => {
-        const status = document.querySelector(`input[name="hw-${hw.id}"]:checked`)?.value;
-        if (status) {
-            checks.push({
-                hardware_id: hw.id,
-                status: status
-            });
-        }
+function updateDashboard(data) {
+  // Stats
+  document.getElementById('stat-pass').textContent = data.stats.pass;
+  document.getElementById('stat-warn').textContent = data.stats.warning;
+  document.getElementById('stat-fail').textContent = data.stats.fail;
+
+  // Render Chart
+  const ctx = document.getElementById('conditionChart').getContext('2d');
+  if (conditionChartInstance) conditionChartInstance.destroy();
+  
+  conditionChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Pass', 'Warning', 'Fail'],
+      datasets: [{
+        data: [data.stats.pass, data.stats.warning, data.stats.fail],
+        backgroundColor: ['#22c55e', '#eab308', '#ef4444'],
+        borderWidth: 0,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '70%',
+      plugins: {
+        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } }
+      }
+    }
+  });
+
+  // Recent Issues List
+  const container = document.getElementById('recent-issues-container');
+  if (data.recentIssues && data.recentIssues.length > 0) {
+    let html = '';
+    data.recentIssues.forEach(iss => {
+      const isFail = iss.status === 'FAIL';
+      const color = isFail ? 'red' : 'yellow';
+      html += `
+        <div class="bg-white p-3 rounded-xl border-l-4 border-l-${color}-500 shadow-sm flex justify-between items-center">
+          <div>
+            <p class="text-xs font-bold text-gray-800">${iss.gate} <span class="text-gray-400 font-normal">| ${iss.hardware}</span></p>
+            <p class="text-[10px] text-gray-500 mt-0.5"><i data-lucide="clock" class="inline w-3 h-3"></i> ${iss.date} - ${iss.petugas}</p>
+          </div>
+          <span class="px-2 py-1 bg-${color}-50 text-${color}-700 text-[10px] font-bold rounded">${iss.status}</span>
+        </div>
+      `;
     });
+    container.innerHTML = html;
+    lucide.createIcons(); // re-init icons for new HTML
+  } else {
+    container.innerHTML = `<div class="text-center p-4 text-sm text-gray-400 italic bg-white rounded-xl border border-gray-200">Tidak ada isu terbaru.</div>`;
+  }
+}
 
-    // 2. Siapkan Payload (Data yang dikirim)
-    const payload = {
-        type: "daily",
-        tanggal: new Date().toLocaleDateString('id-ID'),
-        gate_id: gateId,
-        officer: appData.user || "Zaky", // Ganti dengan sistem login kamu
-        checks: checks, // Ini Array of Objects
-        keterangan: document.getElementById('form-ket').value,
-        photos: selectedPhotos // Array base64 foto
+// ================= PHOTO INPUT LOGIC =================
+const photoCam = document.getElementById('photoCam');
+const photoGal = document.getElementById('photoGal');
+const display = document.getElementById('fileNameDisplay');
+
+function handleFileSelection(e) {
+  if (e.target.files && e.target.files.length > 0) {
+    currentPhotoFile = e.target.files[0];
+    display.textContent = `Foto terpilih: ${currentPhotoFile.name}`;
+    display.classList.replace('text-gray-400', 'text-blue-600');
+  }
+}
+photoCam.addEventListener('change', handleFileSelection);
+photoGal.addEventListener('change', handleFileSelection);
+
+// Require photo logic
+const statusRadios = document.querySelectorAll('input[name="status"]');
+const photoLabelText = document.getElementById('photoLabelText');
+let isPhotoRequired = false;
+
+statusRadios.forEach(radio => {
+  radio.addEventListener('change', (e) => {
+    if (e.target.value === 'FAIL' || e.target.value === 'WARNING') {
+      isPhotoRequired = true;
+      photoLabelText.innerHTML = 'Foto Lapangan <span class="text-red-500">* (Wajib Kamera/Galeri)</span>';
+    } else {
+      isPhotoRequired = false;
+      photoLabelText.innerHTML = 'Foto Lapangan (Opsional)';
+    }
+  });
+});
+
+function processImageWithWatermark(file, watermarkText) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const MAX_WIDTH = 1200;
+        let width = img.width, height = img.height;
+        if (width > MAX_WIDTH) { height = Math.floor(height * (MAX_WIDTH / width)); width = MAX_WIDTH; }
+        canvas.width = width; canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        const fontSize = Math.max(16, Math.floor(width / 35));
+        ctx.font = `${fontSize}px Inter, sans-serif`;
+        const padding = 12, rectHeight = fontSize + padding * 2;
+        
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(0, height - rectHeight, width, rectHeight);
+        ctx.fillStyle = 'white';
+        ctx.fillText(watermarkText, padding, height - padding - 4);
+        
+        resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
+      };
+      img.onerror = reject; img.src = e.target.result;
     };
+    reader.onerror = reject; reader.readAsDataURL(file);
+  });
+}
 
-    // 3. Kirim ke Google Apps Script
-    google.script.run
-        .withSuccessHandler(response => {
-            document.getElementById('loading-screen').classList.add('hidden');
-            if (response.status === "success") {
-                Swal.fire('Berhasil!', 'Laporan harian telah tersimpan.', 'success')
-                    .then(() => changeTab('dashboard'));
-            }
-        })
-        .withFailureHandler(err => {
-            document.getElementById('loading-screen').classList.add('hidden');
-            Swal.fire('Gagal', 'Terjadi kesalahan: ' + err, 'error');
-        })
-        .processSubmission(payload); // Fungsi ini harus ada di backend.gs
+// ================= FORM SUBMISSIONS =================
+const loadingOverlay = document.getElementById('loadingOverlay');
+
+document.getElementById('dailyCheckForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  if (isPhotoRequired && !currentPhotoFile) {
+    alert("Status WARNING/FAIL mewajibkan Anda melampirkan foto!");
+    return;
+  }
+  
+  loadingOverlay.classList.remove('hidden');
+  const form = e.target;
+  const formData = {
+    petugas: form.petugas.value,
+    gateId: form.gateId.value,
+    hardware: form.hardware.value,
+    status: form.status.value,
+    keterangan: form.keterangan.value
+  };
+
+  let fileData = null;
+  if (currentPhotoFile) {
+    try {
+      const dateStr = new Date().toLocaleString('id-ID');
+      const watermarkText = `[ ${dateStr} ] Petugas: ${formData.petugas} | Gate: ${formData.gateId}`;
+      const base64Data = await processImageWithWatermark(currentPhotoFile, watermarkText);
+      fileData = { data: base64Data, type: 'image/jpeg', name: currentPhotoFile.name };
+    } catch (error) {
+      loadingOverlay.classList.add('hidden');
+      return alert("Gagal memproses foto.");
+    }
+  }
+
+  await sendPayload({ action: 'dailyCheck', formData, fileData }, form);
+  currentPhotoFile = null;
+  display.textContent = "Belum ada foto terpilih";
+  display.classList.replace('text-blue-600', 'text-gray-400');
+  document.querySelector('input[value="PASS"]').checked = true;
+});
+
+document.getElementById('maintenanceForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  loadingOverlay.classList.remove('hidden');
+  const form = e.target;
+  const formData = {
+    teknisi: form.teknisi.value,
+    tglLapor: form.tglLapor.value,
+    statusTiket: form.statusTiket.value,
+    gateId: form.gateId.value,
+    hardware: form.hardware.value,
+    masalah: form.masalah.value,
+    tindakan: form.tindakan.value,
+    tglSelesai: form.tglSelesai.value
+  };
+
+  await sendPayload({ action: 'maintenance', formData }, form);
+});
+
+async function sendPayload(payload, formElement) {
+  try {
+    const response = await fetch(GAS_URL, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    const result = await response.json();
+    loadingOverlay.classList.add('hidden');
+    
+    if (result.success) {
+      alert("Berhasil: " + result.message);
+      formElement.reset();
+      fetchData(); // Refresh dashboard data in background
+    } else {
+      alert("Gagal: " + result.message);
+    }
+  } catch (error) {
+    loadingOverlay.classList.add('hidden');
+    alert("Terjadi kesalahan jaringan: " + error.message);
+  }
 }

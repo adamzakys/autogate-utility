@@ -50,48 +50,59 @@ function getInitialData() {
   const gates = ss.getSheetByName("REF_GATES").getDataRange().getValues();
   const hardwares = ss.getSheetByName("REF_HARDWARE").getDataRange().getValues();
   
-  // Dashboard Data
-  let stats = { pass: 0, warning: 0, fail: 0 };
-  let recentIssues = [];
+  // Map Gates dan Ekstrak Lokasi
+  const gateRows = gates.slice(1);
+  const gateMap = {};
+  const gatesList = [];
   
+  gateRows.forEach(r => {
+    if (r[0]) {
+      const lokasi = r[2] ? String(r[2]).trim() : "Lainnya";
+      gateMap[r[0]] = lokasi;
+      gatesList.push({ id: r[0], nama: r[1], lokasi: lokasi });
+    }
+  });
+
+  // Proses Logs
+  let todayLogs = [];
+  let recentIssues = [];
   const dailySheet = ss.getSheetByName("LOG_DAILY_CHECK");
+  
   if (dailySheet) {
     const dailyLogs = dailySheet.getDataRange().getValues();
     if (dailyLogs.length > 1) {
       const logsData = dailyLogs.slice(1);
-      
-      // Ambil data hari ini saja untuk stats
       const today = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd");
       
-      logsData.forEach(row => {
-        const tglStr = String(row[1]).substring(0, 10);
-        if (tglStr === today || true) { // kita hitung semua dulu sementara
-          const status = row[4];
-          if (status === 'PASS') stats.pass++;
-          else if (status === 'WARNING') stats.warning++;
-          else if (status === 'FAIL') stats.fail++;
+      const parsedLogs = logsData.map(row => {
+        let tglStr = "";
+        if (row[1] instanceof Date) {
+          tglStr = Utilities.formatDate(row[1], "GMT+7", "yyyy-MM-dd");
+        } else {
+          tglStr = String(row[1]).substring(0, 10);
         }
-      });
-      
-      // 5 Issue Terbaru (Warning / Fail)
-      recentIssues = logsData
-        .filter(row => row[4] === 'FAIL' || row[4] === 'WARNING')
-        .slice(-5)
-        .map(row => ({
-          date: row[1] instanceof Date ? Utilities.formatDate(row[1], "GMT+7", "dd/MM/yyyy") : row[1],
-          gate: row[2],
+        
+        return {
+          date: row[1] instanceof Date ? Utilities.formatDate(row[1], "GMT+7", "dd/MM/yyyy HH:mm") : row[1],
+          tglStr: tglStr,
+          gateId: row[2],
+          lokasi: gateMap[row[2]] || "Lainnya",
           hardware: row[3],
           status: row[4],
           petugas: row[5]
-        })).reverse();
+        };
+      });
+
+      todayLogs = parsedLogs.filter(log => log.tglStr === today);
+      recentIssues = parsedLogs.filter(log => log.status === 'FAIL' || log.status === 'WARNING').slice(-20);
     }
   }
 
   return {
     officers: officers.slice(1).map(r => r[1]).filter(String),
-    gates: gates.slice(1).map(r => ({id: r[0], nama: r[1]})).filter(g => g.id),
+    gates: gatesList,
     hardwares: hardwares.slice(1).map(r => r[1]).filter(String),
-    stats: stats,
+    todayLogs: todayLogs,
     recentIssues: recentIssues
   };
 }
@@ -114,7 +125,7 @@ function submitDailyCheck(formData, fileData) {
       fileUrl = file.getUrl();
     }
 
-    const watermark = `Petugas: ${formData.petugas} | Gate: ${formData.gateId} | Waktu: ${timestamp}`;
+    const watermark = `Petugas: ${formData.petugas} | Gate: ${formData.gateId} | Lokasi: ${formData.lokasi} | Waktu: ${timestamp}`;
 
     sheet.appendRow([
       timestamp,
@@ -186,6 +197,7 @@ function sendUrgentNotification(data, photoLink, type) {
     
     Status: ${data.status}
     Petugas/Teknisi: ${data.petugas || data.teknisi}
+    Lokasi: ${data.lokasi || '-'}
     Unit: ${data.gateId}
     Alat: ${data.hardware}
     Keterangan/Masalah: ${data.keterangan || data.masalah}

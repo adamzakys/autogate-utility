@@ -75,15 +75,18 @@ function getInitialData() {
       const today = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd");
       
       const parsedLogs = logsData.map(row => {
+        let dateObj = row[1];
+        if (!(dateObj instanceof Date)) dateObj = new Date(row[1]);
+        
         let tglStr = "";
-        if (row[1] instanceof Date) {
-          tglStr = Utilities.formatDate(row[1], "GMT+7", "yyyy-MM-dd");
+        if (!isNaN(dateObj.getTime())) {
+          tglStr = Utilities.formatDate(dateObj, "GMT+7", "yyyy-MM-dd");
         } else {
           tglStr = String(row[1]).substring(0, 10);
         }
         
         return {
-          date: row[1] instanceof Date ? Utilities.formatDate(row[1], "GMT+7", "dd/MM/yyyy HH:mm") : row[1],
+          date: !isNaN(dateObj.getTime()) ? Utilities.formatDate(dateObj, "GMT+7", "dd/MM/yyyy HH:mm") : row[1],
           tglStr: tglStr,
           gateId: row[2],
           lokasi: gateMap[row[2]] || "Lainnya",

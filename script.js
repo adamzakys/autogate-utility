@@ -35,11 +35,11 @@ const bottomNav = document.getElementById('bottomNav');
 function navigateTo(pageId) {
   navBtns.forEach(b => {
     if (b.getAttribute('data-target') === pageId) {
-      b.classList.remove('text-gray-400');
-      b.classList.add('text-red-600');
+      b.classList.remove('text-slate-400', 'dark:text-slate-500', 'hover:text-slate-800', 'dark:hover:text-slate-300', 'text-gray-400');
+      b.classList.add('text-red-600', 'dark:text-red-500', 'drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]');
     } else {
-      b.classList.remove('text-red-600');
-      b.classList.add('text-gray-400');
+      b.classList.remove('text-red-600', 'dark:text-red-500', 'drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]');
+      b.classList.add('text-slate-400', 'dark:text-slate-500', 'hover:text-slate-800', 'dark:hover:text-slate-300');
     }
   });
 

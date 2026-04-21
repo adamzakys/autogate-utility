@@ -242,11 +242,15 @@ function applySessionFilter() {
 }
 
 function updateChart(pass, warn, fail) {
+  if (conditionChartInstance) {
+    conditionChartInstance.destroy();
+    conditionChartInstance = null;
+  }
+  
   const chartParent = document.getElementById('conditionChart').parentElement;
   if (pass === 0 && warn === 0 && fail === 0) {
     chartParent.innerHTML = `<div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400"><i data-lucide="inbox" class="w-8 h-8 mb-2 opacity-50"></i><p class="text-xs">Belum ada data hari ini</p></div><canvas id="conditionChart" class="hidden"></canvas>`;
     lucide.createIcons();
-    if (conditionChartInstance) conditionChartInstance.destroy();
     return;
   } else {
     if(chartParent.querySelector('div.absolute')) {
@@ -255,8 +259,6 @@ function updateChart(pass, warn, fail) {
   }
 
   const ctx = document.getElementById('conditionChart').getContext('2d');
-  if (conditionChartInstance) conditionChartInstance.destroy();
-
   conditionChartInstance = new Chart(ctx, {
     type: 'doughnut',
     data: {

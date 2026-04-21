@@ -133,15 +133,15 @@
       <!-- Stats -->
       <div class="grid grid-cols-3 gap-3 mb-6">
         <div class="glass-panel p-3 text-center">
-          <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Pass</p>
+          <p class="text-[10px] text-gray-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Pass</p>
           <p class="text-2xl font-bold text-green-500" id="stat-pass">-</p>
         </div>
         <div class="glass-panel p-3 text-center">
-          <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Warn</p>
+          <p class="text-[10px] text-gray-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Warn</p>
           <p class="text-2xl font-bold text-yellow-500" id="stat-warn">-</p>
         </div>
         <div class="glass-panel p-3 text-center">
-          <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Fail</p>
+          <p class="text-[10px] text-gray-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Fail</p>
           <p class="text-2xl font-bold text-red-500" id="stat-fail">-</p>
         </div>
       </div>
@@ -157,11 +157,11 @@
       </div>
 
       <!-- Recent Issues -->
-      <h3 class="font-semibold text-sm text-gray-700 mb-3 flex items-center gap-2">
-        <i data-lucide="alert-circle" class="w-4 h-4 text-red-500"></i> Isu Terbaru (<span id="dash-lokasi-isu"></span>)
+      <h3 class="font-semibold text-sm text-gray-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+        <i data-lucide="alert-circle" class="w-4 h-4 text-red-500"></i> Isu Terbaru (<span id="dash-lokasi-isu" class="text-red-500 dark:text-red-400"></span>)
       </h3>
       <div class="space-y-3" id="recent-issues-container">
-        <div class="text-center p-4 text-sm text-gray-400 italic bg-white rounded-xl border border-gray-100">
+        <div class="text-center p-4 text-sm text-gray-400 dark:text-slate-500 italic bg-white/80 dark:bg-slate-800/80 rounded-xl border border-white/60 dark:border-slate-700/60">
           Memuat data...
         </div>
       </div>
@@ -339,7 +339,7 @@
     <section id="page-report" class="page-section hidden animate-fade-in">
       <header class="mb-5">
         <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Unduh Laporan</h1>
-        <p class="text-sm text-gray-500">Unduh data laporan operasional.</p>
+        <p class="text-sm text-gray-500 dark:text-slate-400">Unduh data laporan operasional.</p>
       </header>
 
       <div class="glass-panel p-5 space-y-4">

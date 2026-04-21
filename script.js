@@ -238,8 +238,8 @@ function applySessionFilter() {
       const color = isFail ? 'red' : 'yellow';
       const icon = isFail ? 'x-circle' : 'alert-triangle';
       html += `
-        <div onclick="openIssueModal(${index})" class="bg-white dark:bg-slate-800 p-3.5 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center gap-3 border border-slate-100 dark:border-slate-700/60">
-          <div class="w-10 h-10 rounded-full bg-${color}-50 dark:bg-${color}-500/10 flex items-center justify-center shrink-0">
+        <div onclick="openIssueModal(${index})" class="bg-white/80 dark:bg-slate-800/80 p-3.5 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center gap-3 border border-white/60 dark:border-slate-700/60">
+          <div class="w-10 h-10 rounded-full bg-${color}-50 dark:bg-${color}-500/20 flex items-center justify-center shrink-0">
             <i data-lucide="${icon}" class="w-5 h-5 text-${color}-500"></i>
           </div>
           <div class="flex-1 min-w-0">
@@ -247,14 +247,14 @@ function applySessionFilter() {
             <p class="text-[11px] text-gray-500 dark:text-slate-400 truncate mt-0.5" title="${iss.hardware}">${iss.hardware}</p>
             <p class="text-[10px] text-gray-400 dark:text-slate-500 mt-1"><i data-lucide="clock" class="inline w-3 h-3"></i> ${iss.date}</p>
           </div>
-          <span class="px-2.5 py-1 bg-${color}-50 dark:bg-${color}-500/10 text-${color}-700 dark:text-${color}-400 text-[10px] font-bold rounded-lg border border-${color}-100 dark:border-${color}-800/30">${iss.status}</span>
+          <span class="px-2.5 py-1 bg-${color}-50 dark:bg-${color}-500/20 text-${color}-700 dark:text-${color}-300 text-[10px] font-bold rounded-lg border border-${color}-100 dark:border-${color}-700/50">${iss.status}</span>
         </div>
       `;
     });
     container.innerHTML = html;
     lucide.createIcons();
   } else {
-    container.innerHTML = `<div class="text-center p-4 text-sm text-gray-400 italic bg-white rounded-xl border border-gray-100">Tidak ada kendala terbaru di area ini.</div>`;
+    container.innerHTML = `<div class="text-center p-4 text-sm text-gray-400 dark:text-slate-500 italic bg-white/80 dark:bg-slate-800/80 rounded-xl border border-white/60 dark:border-slate-700/60">Tidak ada kendala terbaru di area ini.</div>`;
   }
 }
 

@@ -29,7 +29,7 @@ function doPost(e) {
     if (payload.action === 'maintenance') {
       result = submitMaintenance(payload.formData);
     } else {
-      result = submitDailyCheck(payload.formData, payload.fileData);
+      result = submitDailyCheck(payload.formData, payload.fileDataArray);
     }
     
     return ContentService.createTextOutput(JSON.stringify(result))
@@ -110,20 +110,24 @@ function getInitialData() {
 /**
  * Fungsi Submit Daily Check
  */
-function submitDailyCheck(formData, fileData) {
+function submitDailyCheck(formData, fileDataArray) {
   try {
     const ss = SpreadsheetApp.openById(SS_ID);
     const sheet = ss.getSheetByName("LOG_DAILY_CHECK");
     const timestamp = new Date();
     
-    let fileUrl = "";
-    if (fileData) {
+    let fileUrls = [];
+    if (fileDataArray && Array.isArray(fileDataArray)) {
       const folder = DriveApp.getFolderById(FOLDER_ID);
-      const fileName = `CHECK_${formData.gateId}_${Utilities.formatDate(timestamp, "GMT+7", "yyyyMMdd_HHmm")}`;
-      const blob = Utilities.newBlob(Utilities.base64Decode(fileData.data), fileData.type, fileName);
-      const file = folder.createFile(blob);
-      fileUrl = file.getUrl();
+      fileDataArray.forEach((fileData, idx) => {
+        const fileName = `CHECK_${formData.gateId}_${Utilities.formatDate(timestamp, "GMT+7", "yyyyMMdd_HHmm")}_${idx+1}`;
+        const blob = Utilities.newBlob(Utilities.base64Decode(fileData.data), fileData.type, fileName);
+        const file = folder.createFile(blob);
+        fileUrls.push(file.getUrl());
+      });
     }
+
+    const fileUrlStr = fileUrls.join("\n");
 
     const watermark = `Petugas: ${formData.petugas} | Gate: ${formData.gateId} | Lokasi: ${formData.lokasi} | Waktu: ${timestamp}`;
 
@@ -135,14 +139,19 @@ function submitDailyCheck(formData, fileData) {
       formData.status,
       formData.petugas,
       formData.keterangan,
-      fileUrl,
+      fileUrlStr,
       "", 
       "", 
       watermark
     ]);
 
     if (formData.status === "FAIL" || formData.status === "WARNING") {
-      sendUrgentNotification(formData, fileUrl, 'DAILY CHECK');
+      try {
+        sendUrgentNotification(formData, fileUrlStr, 'DAILY CHECK');
+      } catch (mailError) {
+        // Abaikan error permission email agar data tetap berhasil tersimpan
+        console.log("Email error: " + mailError.toString());
+      }
     }
 
     return { success: true, message: "Data Daily Check berhasil disimpan!" };

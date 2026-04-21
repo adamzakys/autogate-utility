@@ -2,7 +2,25 @@ const GAS_URL = "https://script.google.com/macros/s/AKfycbzhzU1DsJ5Y6dX6RGs09-ZW
 
 lucide.createIcons();
 let conditionChartInstance = null;
-let currentPhotoFile = null;
+let currentPhotoFiles = [];
+
+// ================= THEME LOGIC =================
+const btnThemeToggle = document.getElementById('btnThemeToggle');
+if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+  document.documentElement.classList.add('dark');
+} else {
+  document.documentElement.classList.remove('dark');
+}
+
+btnThemeToggle.addEventListener('click', () => {
+  document.documentElement.classList.toggle('dark');
+  if (document.documentElement.classList.contains('dark')) {
+    localStorage.theme = 'dark';
+  } else {
+    localStorage.theme = 'light';
+  }
+});
+
 
 // Global State
 let globalData = null;
@@ -255,8 +273,6 @@ const btnCapture = document.getElementById('btnCapture');
 
 const photoGal = document.getElementById('photoGal');
 const photoPreviewContainer = document.getElementById('photoPreviewContainer');
-const photoPreview = document.getElementById('photoPreview');
-const btnRemovePhoto = document.getElementById('btnRemovePhoto');
 const fileNameDisplay = document.getElementById('fileNameDisplay');
 let currentStream = null;
 
@@ -294,8 +310,9 @@ btnCapture.addEventListener('click', () => {
   ctx.drawImage(videoElement, 0, 0, captureCanvas.width, captureCanvas.height);
 
   captureCanvas.toBlob((blob) => {
-    const file = new File([blob], "webcam_capture.jpg", { type: "image/jpeg" });
-    setPhotoPreview(file, URL.createObjectURL(blob));
+    const file = new File([blob], `webcam_capture_${Date.now()}.jpg`, { type: "image/jpeg" });
+    currentPhotoFiles.push(file);
+    renderPhotoPreviews();
   }, 'image/jpeg', 0.9);
 
   stopWebCam();
@@ -304,27 +321,47 @@ btnCapture.addEventListener('click', () => {
 // Handle Gallery
 photoGal.addEventListener('change', (e) => {
   if (e.target.files && e.target.files.length > 0) {
-    const file = e.target.files[0];
-    setPhotoPreview(file, URL.createObjectURL(file));
+    for(let i=0; i < e.target.files.length; i++) {
+      currentPhotoFiles.push(e.target.files[i]);
+    }
+    renderPhotoPreviews();
   }
 });
 
-// Set Preview
-function setPhotoPreview(file, url) {
-  currentPhotoFile = file;
-  photoPreview.src = url;
+// Render Previews
+function renderPhotoPreviews() {
+  if (currentPhotoFiles.length === 0) {
+    photoPreviewContainer.classList.add('hidden');
+    fileNameDisplay.textContent = "Belum ada foto terpilih";
+    photoGal.value = "";
+    return;
+  }
+  
   photoPreviewContainer.classList.remove('hidden');
-  fileNameDisplay.textContent = `Foto siap: ${file.name}`;
+  photoPreviewContainer.innerHTML = '';
+  
+  currentPhotoFiles.forEach((file, index) => {
+    const url = URL.createObjectURL(file);
+    const div = document.createElement('div');
+    div.className = "relative w-20 h-20 shrink-0 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 snap-center shadow-sm";
+    div.innerHTML = `
+      <img src="${url}" class="w-full h-full object-cover">
+      <button type="button" onclick="removePhoto(${index})" class="absolute top-1 right-1 bg-red-500/90 text-white rounded-full p-1 shadow backdrop-blur-sm hover:bg-red-600 transition-colors">
+        <i data-lucide="x" class="w-3 h-3"></i>
+      </button>
+    `;
+    photoPreviewContainer.appendChild(div);
+  });
+  
+  lucide.createIcons();
+  fileNameDisplay.textContent = `${currentPhotoFiles.length} foto siap`;
 }
 
-// Remove Photo
-btnRemovePhoto.addEventListener('click', () => {
-  currentPhotoFile = null;
-  photoPreview.src = "";
-  photoPreviewContainer.classList.add('hidden');
-  fileNameDisplay.textContent = "Belum ada foto terpilih";
-  photoGal.value = "";
-});
+// Global scope for onclick
+window.removePhoto = function(index) {
+  currentPhotoFiles.splice(index, 1);
+  renderPhotoPreviews();
+};
 
 // Require photo logic
 const statusRadios = document.querySelectorAll('input[name="status"]');
@@ -389,7 +426,7 @@ function toggleButtonLoading(btn, isLoading) {
 
 document.getElementById('dailyCheckForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  if (isPhotoRequired && !currentPhotoFile) return alert("Status WARNING/FAIL mewajibkan Anda melampirkan foto!");
+  if (isPhotoRequired && currentPhotoFiles.length === 0) return alert("Status WARNING/FAIL mewajibkan Anda melampirkan foto!");
 
   const form = e.target;
   const btnSubmit = document.getElementById('btnSubmitDaily');
@@ -404,23 +441,29 @@ document.getElementById('dailyCheckForm').addEventListener('submit', async (e) =
     keterangan: form.keterangan.value
   };
 
-  let fileData = null;
-  if (currentPhotoFile) {
+  let fileDataArray = [];
+  if (currentPhotoFiles.length > 0) {
     try {
       const dateStr = new Date().toLocaleString('id-ID');
       const wmText = `[ ${dateStr} ] Petugas: ${formData.petugas} | Gate: ${formData.gateId}`;
-      const base64Data = await processImageWithWatermark(currentPhotoFile, wmText);
-      fileData = { data: base64Data, type: 'image/jpeg', name: currentPhotoFile.name };
+      
+      const promises = currentPhotoFiles.map(async (file) => {
+        const base64Data = await processImageWithWatermark(file, wmText);
+        return { data: base64Data, type: 'image/jpeg', name: file.name };
+      });
+      
+      fileDataArray = await Promise.all(promises);
     } catch (error) {
       toggleButtonLoading(btnSubmit, false);
       return alert("Gagal memproses foto.");
     }
   }
 
-  await sendPayload({ action: 'dailyCheck', formData, fileData }, form, btnSubmit);
+  await sendPayload({ action: 'dailyCheck', formData, fileDataArray }, form, btnSubmit);
 
   // Reset custom elements
-  btnRemovePhoto.click();
+  currentPhotoFiles = [];
+  renderPhotoPreviews();
   document.querySelector('input[value="PASS"]').checked = true;
 });
 

@@ -21,382 +21,406 @@
   </script>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Tom Select for Searchable Dropdown -->
+  <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 </head>
 
-<body class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 antialiased transition-colors duration-300">
+<body
+  class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 antialiased transition-colors duration-300">
 
   <!-- Ambient Background Orbs (fixed to viewport) -->
   <div class="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-    <div class="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-blue-400/20 dark:bg-blue-600/20 blur-[80px]"></div>
-    <div class="absolute top-[40%] right-[-10%] w-[70vw] h-[70vw] rounded-full bg-rose-400/20 dark:bg-rose-600/20 blur-[80px]"></div>
-    <div class="absolute bottom-[-10%] left-[10%] w-[60vw] h-[60vw] rounded-full bg-emerald-400/10 dark:bg-emerald-600/10 blur-[80px]"></div>
+    <div
+      class="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-blue-400/20 dark:bg-blue-600/20 blur-[80px]">
+    </div>
+    <div
+      class="absolute top-[40%] right-[-10%] w-[70vw] h-[70vw] rounded-full bg-rose-400/20 dark:bg-rose-600/20 blur-[80px]">
+    </div>
+    <div
+      class="absolute bottom-[-10%] left-[10%] w-[60vw] h-[60vw] rounded-full bg-emerald-400/10 dark:bg-emerald-600/10 blur-[80px]">
+    </div>
   </div>
 
   <!-- Full screen flex wrapper -->
   <div class="flex flex-col h-[100dvh] w-full max-w-xl mx-auto relative">
 
-  <!-- Header sticky -->
-  <nav id="mainNav" class="shrink-0 sticky top-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border-b border-white/40 dark:border-slate-700/50 px-4 py-3 z-40">
-    <div class="flex justify-between items-center">
-      <div class="flex items-center gap-3">
-        <!-- Logo BMS -->
-        <img src="Berlian-Manyar-Sejahtera-New-Thumbnail.webp" alt="BMS Logo"
-          class="h-8 w-auto object-contain drop-shadow-sm rounded">
-        <div class="leading-tight">
-          <span class="font-bold text-[15px] tracking-tight text-slate-800 dark:text-slate-100 block">GateOps</span>
+    <!-- Header sticky -->
+    <nav id="mainNav"
+      class="shrink-0 sticky top-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border-b border-white/40 dark:border-slate-700/50 px-4 py-3 z-40">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <!-- Logo BMS -->
+          <img src="Berlian-Manyar-Sejahtera-New-Thumbnail.webp" alt="BMS Logo"
+            class="h-8 w-auto object-contain drop-shadow-sm rounded">
+          <div class="leading-tight">
+            <span class="font-bold text-[15px] tracking-tight text-slate-800 dark:text-slate-100 block">GateOps</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btnThemeToggle"
+            class="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors active:scale-95 bg-slate-100 dark:bg-slate-800 rounded-full"
+            title="Toggle Theme">
+            <i data-lucide="moon" class="w-4 h-4 hidden dark:block"></i>
+            <i data-lucide="sun" class="w-4 h-4 block dark:hidden"></i>
+          </button>
+          <button id="btnReload"
+            class="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors active:scale-95 bg-slate-100 dark:bg-slate-800 rounded-full"
+            title="Reload Data">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          </button>
+          <button id="btnLogout"
+            class="hidden p-1.5 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-500 transition-colors active:scale-95 bg-slate-100 dark:bg-slate-800 rounded-full"
+            title="Keluar / Logout">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+          <div id="connection-status"
+            class="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400 px-2.5 py-1 rounded-full shadow-sm">
+            <span class="relative flex h-2 w-2" id="statusDot">
+              <span
+                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span id="syncText">Online</span>
+          </div>
         </div>
       </div>
-      <div class="flex items-center gap-2">
-        <button id="btnThemeToggle"
-          class="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors active:scale-95 bg-slate-100 dark:bg-slate-800 rounded-full"
-          title="Toggle Theme">
-          <i data-lucide="moon" class="w-4 h-4 hidden dark:block"></i>
-          <i data-lucide="sun" class="w-4 h-4 block dark:hidden"></i>
-        </button>
-        <button id="btnReload"
-          class="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors active:scale-95 bg-slate-100 dark:bg-slate-800 rounded-full"
-          title="Reload Data">
-          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-        </button>
-        <button id="btnLogout"
-          class="hidden p-1.5 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-500 transition-colors active:scale-95 bg-slate-100 dark:bg-slate-800 rounded-full"
-          title="Keluar / Logout">
-          <i data-lucide="log-out" class="w-4 h-4"></i>
-        </button>
-        <div id="connection-status"
-          class="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400 px-2.5 py-1 rounded-full shadow-sm">
-          <span class="relative flex h-2 w-2" id="statusDot">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span id="syncText">Online</span>
+    </nav>
+
+
+    <!-- Main Scrollable Area -->
+    <main class="flex-1 overflow-y-auto w-full p-4 relative" id="app-container">
+
+      <!-- ================= START / LOGIN PAGE ================= -->
+      <section id="page-login" class="page-section animate-fade-in block h-full flex flex-col justify-center">
+        <div class="glass-panel p-6 mb-12">
+          <div class="text-center mb-6">
+            <div
+              class="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+              <i data-lucide="user-check" class="w-8 h-8"></i>
+            </div>
+            <h2 class="text-xl font-bold text-gray-800 dark:text-white">Mulai Sesi</h2>
+            <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">Silakan pilih identitas Anda dan lokasi tugas.</p>
+          </div>
+
+          <form id="startForm" class="space-y-4">
+            <div>
+              <label
+                class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1 tracking-wider">Petugas</label>
+              <div class="ios-select-wrapper">
+                <select id="start-petugas" class="ios-input w-full pl-11 font-medium">
+                  <option value="" disabled selected>Memuat data...</option>
+                </select>
+                <i data-lucide="user" class="w-5 h-5 text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5"></i>
+              </div>
+            </div>
+            <div>
+              <label
+                class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1 tracking-wider">Lokasi
+                Tugas</label>
+              <div class="ios-select-wrapper">
+                <select id="start-lokasi" class="ios-input w-full pl-11 font-medium">
+                  <option value="" disabled selected>Memuat data...</option>
+                </select>
+                <i data-lucide="map-pin"
+                  class="w-5 h-5 text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5"></i>
+              </div>
+            </div>
+            <button type="submit" class="ios-btn bg-red-600 text-white w-full py-3.5 mt-2 shadow-md shadow-red-200">
+              MASUK
+            </button>
+          </form>
         </div>
-      </div>
-    </div>
-  </nav>
+      </section>
 
+      <!-- ================= DASHBOARD PAGE ================= -->
+      <section id="page-dashboard" class="page-section hidden animate-fade-in">
+        <header class="mb-5 flex justify-between items-end">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
+            <p class="text-sm text-gray-500 dark:text-slate-400">Lokasi: <span id="dash-lokasi"
+                class="font-semibold text-gray-700 dark:text-slate-300">Semua</span></p>
+          </div>
+        </header>
 
-  <!-- Main Scrollable Area -->
-  <main class="flex-1 overflow-y-auto w-full p-4 relative" id="app-container">
+        <!-- Stats -->
+        <div class="grid grid-cols-3 gap-3 mb-6">
+          <div class="glass-panel p-3 text-center">
+            <p class="text-[10px] text-gray-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Pass</p>
+            <p class="text-2xl font-bold text-green-500" id="stat-pass">-</p>
+          </div>
+          <div class="glass-panel p-3 text-center">
+            <p class="text-[10px] text-gray-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Warn</p>
+            <p class="text-2xl font-bold text-yellow-500" id="stat-warn">-</p>
+          </div>
+          <div class="glass-panel p-3 text-center">
+            <p class="text-[10px] text-gray-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Fail</p>
+            <p class="text-2xl font-bold text-red-500" id="stat-fail">-</p>
+          </div>
+        </div>
 
-    <!-- ================= START / LOGIN PAGE ================= -->
-    <section id="page-login" class="page-section animate-fade-in block h-full flex flex-col justify-center">
-      <div class="glass-panel p-6 mb-12">
-        <div class="text-center mb-6">
+        <!-- Chart -->
+        <div class="glass-panel p-5 mb-6">
+          <h3 class="font-semibold text-sm text-gray-700 dark:text-slate-100 mb-4 flex items-center gap-2">
+            <i data-lucide="pie-chart" class="w-4 h-4 text-blue-500"></i> Distribusi Kondisi
+          </h3>
+          <div class="relative h-48 w-full flex justify-center">
+            <canvas id="conditionChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Recent Issues -->
+        <h3 class="font-semibold text-sm text-gray-700 dark:text-slate-200 mb-3 flex items-center gap-2">
+          <i data-lucide="alert-circle" class="w-4 h-4 text-red-500"></i> Isu Terbaru (<span id="dash-lokasi-isu"
+            class="text-red-500 dark:text-red-400"></span>)
+        </h3>
+        <div class="space-y-3" id="recent-issues-container">
           <div
-            class="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
-            <i data-lucide="user-check" class="w-8 h-8"></i>
+            class="text-center p-4 text-sm text-gray-400 dark:text-slate-500 italic bg-white/80 dark:bg-slate-800/80 rounded-xl border border-white/60 dark:border-slate-700/60">
+            Memuat data...
           </div>
-          <h2 class="text-xl font-bold text-gray-800 dark:text-white">Mulai Sesi</h2>
-          <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">Silakan pilih identitas Anda dan lokasi tugas.</p>
         </div>
+      </section>
 
-        <form id="startForm" class="space-y-4">
-          <div>
-            <label
-              class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1 tracking-wider">Petugas</label>
-            <div class="ios-select-wrapper">
-              <select id="start-petugas" class="ios-input w-full pl-11 font-medium">
-                <option value="" disabled selected>Memuat data...</option>
-              </select>
-              <i data-lucide="user" class="w-5 h-5 text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5"></i>
+      <!-- ================= DAILY CHECK PAGE ================= -->
+      <section id="page-daily" class="page-section hidden animate-fade-in">
+        <header class="mb-5">
+          <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Daily Check</h1>
+          <p class="text-sm text-gray-500 dark:text-slate-400">Inspeksi rutin hardware autogate.</p>
+        </header>
+
+        <form id="dailyCheckForm" class="space-y-5">
+          <div class="glass-panel p-5">
+            <h2
+              class="font-bold text-slate-800 dark:text-slate-100 mb-4 text-sm flex items-center gap-2 border-b border-slate-200/50 dark:border-slate-700 pb-2">
+              <i data-lucide="map-pin" class="w-4 h-4 text-rose-500"></i> Lokasi & Hardware
+            </h2>
+            <div class="space-y-4">
+              <div class="ios-select-wrapper">
+                <select id="gateId" name="gateId" class="ios-input w-full font-medium" required>
+                  <option value="" disabled selected>Pilih Gate...</option>
+                </select>
+              </div>
+              <div id="hw-container-daily" class="space-y-2">
+                <div class="ios-select-wrapper flex gap-2 hw-item items-center">
+                  <select name="hardware" class="ios-input w-full font-medium hw-select" required>
+                    <option value="" disabled selected>Pilih Hardware...</option>
+                  </select>
+                </div>
+              </div>
+              <button type="button" id="btnAddHwDaily"
+                class="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1.5 mt-2 p-1 active:scale-95 transition-transform"><i
+                  data-lucide="plus-circle" class="w-4 h-4"></i> Tambah Hardware Lain</button>
             </div>
           </div>
-          <div>
-            <label
-              class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1 tracking-wider">Lokasi
-              Tugas</label>
-            <div class="ios-select-wrapper">
-              <select id="start-lokasi" class="ios-input w-full pl-11 font-medium">
-                <option value="" disabled selected>Memuat data...</option>
-              </select>
-              <i data-lucide="map-pin" class="w-5 h-5 text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5"></i>
+
+          <div class="glass-panel p-5">
+            <h2
+              class="font-bold text-slate-800 dark:text-slate-100 mb-4 text-sm flex items-center gap-2 border-b border-slate-200/50 dark:border-slate-700 pb-2">
+              <i data-lucide="activity" class="w-4 h-4 text-rose-500"></i> Hasil Inspeksi
+            </h2>
+
+            <div class="flex gap-2 mb-5">
+              <label class="flex-1 cursor-pointer">
+                <input type="radio" name="status" value="PASS" class="sr-only peer" checked required>
+                <div
+                  class="text-center py-2.5 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-xl transition-all border border-transparent peer-checked:bg-emerald-500 peer-checked:text-white peer-checked:shadow-lg peer-checked:shadow-emerald-500/30">
+                  PASS</div>
+              </label>
+              <label class="flex-1 cursor-pointer">
+                <input type="radio" name="status" value="WARNING" class="sr-only peer">
+                <div
+                  class="text-center py-2.5 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-xl transition-all border border-transparent peer-checked:bg-amber-500 peer-checked:text-white peer-checked:shadow-lg peer-checked:shadow-amber-500/30">
+                  WARN</div>
+              </label>
+              <label class="flex-1 cursor-pointer">
+                <input type="radio" name="status" value="FAIL" class="sr-only peer">
+                <div
+                  class="text-center py-2.5 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-xl transition-all border border-transparent peer-checked:bg-rose-500 peer-checked:text-white peer-checked:shadow-lg peer-checked:shadow-rose-500/30">
+                  FAIL</div>
+              </label>
+            </div>
+
+            <div class="mb-4">
+              <label id="photoLabelText"
+                class="block text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase mb-2">Foto Lapangan
+                (Opsional)</label>
+
+              <div class="grid grid-cols-2 gap-2 mb-2">
+                <button type="button" id="btnOpenCam"
+                  class="ios-btn-secondary flex items-center justify-center gap-1.5 py-2.5">
+                  <i data-lucide="camera" class="w-4 h-4"></i>
+                  <span class="text-xs font-semibold">Kamera</span>
+                </button>
+
+                <label for="photoGal"
+                  class="ios-btn-secondary cursor-pointer flex items-center justify-center gap-1.5 py-2.5">
+                  <i data-lucide="image" class="w-4 h-4"></i>
+                  <span class="text-xs font-semibold">Galeri (Multi)</span>
+                  <input id="photoGal" type="file" accept="image/*" multiple class="hidden">
+                </label>
+              </div>
+
+              <!-- Tempat preview foto multiple -->
+              <div id="photoPreviewContainer" class="hidden mt-3 flex gap-2 overflow-x-auto pb-2 snap-x">
+                <!-- JS generates thumbnails here -->
+              </div>
+              <p id="fileNameDisplay" class="text-[10px] text-center text-slate-400 mt-1">Belum ada foto terpilih</p>
+
+            </div>
+
+            <div>
+              <textarea id="keterangan" name="keterangan" rows="2" class="ios-input w-full"
+                placeholder="Keterangan tambahan..."></textarea>
             </div>
           </div>
-          <button type="submit" class="ios-btn bg-red-600 text-white w-full py-3.5 mt-2 shadow-md shadow-red-200">
-            MASUK
+
+          <button type="submit" id="btnSubmitDaily"
+            class="ios-btn bg-red-600 text-white w-full py-3.5 shadow-md shadow-red-200 flex justify-center items-center gap-2">
+            <i data-lucide="send" class="w-4 h-4"></i> SUBMIT DAILY CHECK
           </button>
         </form>
-      </div>
-    </section>
+      </section>
 
-    <!-- ================= DASHBOARD PAGE ================= -->
-    <section id="page-dashboard" class="page-section hidden animate-fade-in">
-      <header class="mb-5 flex justify-between items-end">
-        <div>
-          <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Dashboard</h1>
-          <p class="text-sm text-gray-500 dark:text-slate-400">Lokasi: <span id="dash-lokasi"
-              class="font-semibold text-gray-700 dark:text-slate-300">Semua</span></p>
-        </div>
-      </header>
+      <!-- ================= MAINTENANCE PAGE ================= -->
+      <section id="page-maint" class="page-section hidden animate-fade-in">
+        <header class="mb-5">
+          <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Maintenance</h1>
+          <p class="text-sm text-gray-500 dark:text-slate-400">Log preventive maintenance.</p>
+        </header>
 
-      <!-- Stats -->
-      <div class="grid grid-cols-3 gap-3 mb-6">
-        <div class="glass-panel p-3 text-center">
-          <p class="text-[10px] text-gray-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Pass</p>
-          <p class="text-2xl font-bold text-green-500" id="stat-pass">-</p>
-        </div>
-        <div class="glass-panel p-3 text-center">
-          <p class="text-[10px] text-gray-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Warn</p>
-          <p class="text-2xl font-bold text-yellow-500" id="stat-warn">-</p>
-        </div>
-        <div class="glass-panel p-3 text-center">
-          <p class="text-[10px] text-gray-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Fail</p>
-          <p class="text-2xl font-bold text-red-500" id="stat-fail">-</p>
-        </div>
-      </div>
+        <form id="maintenanceForm" class="space-y-4">
+          <div class="glass-panel p-5 space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label
+                  class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1 tracking-wider">Tgl
+                  Lapor</label>
+                <input type="date" id="maint-tglLapor" name="tglLapor" class="ios-input w-full font-medium" required>
+              </div>
+              <div>
+                <label
+                  class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1 tracking-wider">Status</label>
+                <div class="ios-select-wrapper">
+                  <select id="maint-statusTiket" name="statusTiket" class="ios-input w-full font-medium">
+                    <option value="Open">Open</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Closed">Closed</option>
+                  </select>
+                </div>
+              </div>
+            </div>
 
-      <!-- Chart -->
-      <div class="glass-panel p-5 mb-6">
-        <h3 class="font-semibold text-sm text-gray-700 dark:text-slate-100 mb-4 flex items-center gap-2">
-          <i data-lucide="pie-chart" class="w-4 h-4 text-blue-500"></i> Distribusi Kondisi
-        </h3>
-        <div class="relative h-48 w-full flex justify-center">
-          <canvas id="conditionChart"></canvas>
-        </div>
-      </div>
-
-      <!-- Recent Issues -->
-      <h3 class="font-semibold text-sm text-gray-700 dark:text-slate-200 mb-3 flex items-center gap-2">
-        <i data-lucide="alert-circle" class="w-4 h-4 text-red-500"></i> Isu Terbaru (<span id="dash-lokasi-isu" class="text-red-500 dark:text-red-400"></span>)
-      </h3>
-      <div class="space-y-3" id="recent-issues-container">
-        <div class="text-center p-4 text-sm text-gray-400 dark:text-slate-500 italic bg-white/80 dark:bg-slate-800/80 rounded-xl border border-white/60 dark:border-slate-700/60">
-          Memuat data...
-        </div>
-      </div>
-    </section>
-
-    <!-- ================= DAILY CHECK PAGE ================= -->
-    <section id="page-daily" class="page-section hidden animate-fade-in">
-      <header class="mb-5">
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Daily Check</h1>
-        <p class="text-sm text-gray-500 dark:text-slate-400">Inspeksi rutin hardware autogate.</p>
-      </header>
-
-      <form id="dailyCheckForm" class="space-y-5">
-        <div class="glass-panel p-5">
-          <h2
-            class="font-bold text-slate-800 dark:text-slate-100 mb-4 text-sm flex items-center gap-2 border-b border-slate-200/50 dark:border-slate-700 pb-2">
-            <i data-lucide="map-pin" class="w-4 h-4 text-rose-500"></i> Lokasi & Hardware
-          </h2>
-          <div class="space-y-4">
             <div class="ios-select-wrapper">
-              <select id="gateId" name="gateId" class="ios-input w-full font-medium" required>
+              <select id="maint-gateId" name="gateId" class="ios-input w-full font-medium" required>
                 <option value="" disabled selected>Pilih Gate...</option>
               </select>
             </div>
-            <div id="hw-container-daily" class="space-y-2">
+
+            <div id="hw-container-maint" class="space-y-2">
               <div class="ios-select-wrapper flex gap-2 hw-item items-center">
                 <select name="hardware" class="ios-input w-full font-medium hw-select" required>
                   <option value="" disabled selected>Pilih Hardware...</option>
                 </select>
               </div>
             </div>
-            <button type="button" id="btnAddHwDaily"
-              class="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1.5 mt-2 p-1 active:scale-95 transition-transform"><i
+            <button type="button" id="btnAddHwMaint"
+              class="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1.5 p-1 active:scale-95 transition-transform"><i
                 data-lucide="plus-circle" class="w-4 h-4"></i> Tambah Hardware Lain</button>
-          </div>
-        </div>
 
-        <div class="glass-panel p-5">
-          <h2
-            class="font-bold text-slate-800 dark:text-slate-100 mb-4 text-sm flex items-center gap-2 border-b border-slate-200/50 dark:border-slate-700 pb-2">
-            <i data-lucide="activity" class="w-4 h-4 text-rose-500"></i> Hasil Inspeksi
-          </h2>
-
-          <div class="flex gap-2 mb-5">
-            <label class="flex-1 cursor-pointer">
-              <input type="radio" name="status" value="PASS" class="sr-only peer" checked required>
-              <div
-                class="text-center py-2.5 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-xl transition-all border border-transparent peer-checked:bg-emerald-500 peer-checked:text-white peer-checked:shadow-lg peer-checked:shadow-emerald-500/30">
-                PASS</div>
-            </label>
-            <label class="flex-1 cursor-pointer">
-              <input type="radio" name="status" value="WARNING" class="sr-only peer">
-              <div
-                class="text-center py-2.5 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-xl transition-all border border-transparent peer-checked:bg-amber-500 peer-checked:text-white peer-checked:shadow-lg peer-checked:shadow-amber-500/30">
-                WARN</div>
-            </label>
-            <label class="flex-1 cursor-pointer">
-              <input type="radio" name="status" value="FAIL" class="sr-only peer">
-              <div
-                class="text-center py-2.5 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-xl transition-all border border-transparent peer-checked:bg-rose-500 peer-checked:text-white peer-checked:shadow-lg peer-checked:shadow-rose-500/30">
-                FAIL</div>
-            </label>
-          </div>
-
-          <div class="mb-4">
-            <label id="photoLabelText" class="block text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase mb-2">Foto Lapangan
-              (Opsional)</label>
-
-            <div class="grid grid-cols-2 gap-2 mb-2">
-              <button type="button" id="btnOpenCam"
-                class="ios-btn-secondary flex items-center justify-center gap-1.5 py-2.5">
-                <i data-lucide="camera" class="w-4 h-4"></i>
-                <span class="text-xs font-semibold">Kamera</span>
-              </button>
-
-              <label for="photoGal"
-                class="ios-btn-secondary cursor-pointer flex items-center justify-center gap-1.5 py-2.5">
-                <i data-lucide="image" class="w-4 h-4"></i>
-                <span class="text-xs font-semibold">Galeri (Multi)</span>
-                <input id="photoGal" type="file" accept="image/*" multiple class="hidden">
-              </label>
+            <div>
+              <textarea id="maint-masalah" name="masalah" rows="2" class="ios-input w-full" required
+                placeholder="Deskripsi kendala..."></textarea>
             </div>
 
-            <!-- Tempat preview foto multiple -->
-            <div id="photoPreviewContainer" class="hidden mt-3 flex gap-2 overflow-x-auto pb-2 snap-x">
-              <!-- JS generates thumbnails here -->
+            <div id="maint-tindakan-container">
+              <textarea id="maint-tindakan" name="tindakan" rows="2" class="ios-input w-full"
+                placeholder="Tindakan yang telah dilakukan..."></textarea>
             </div>
-            <p id="fileNameDisplay" class="text-[10px] text-center text-slate-400 mt-1">Belum ada foto terpilih</p>
 
+            <div id="maint-tglSelesai-container">
+              <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1 ml-1">Tgl Selesai</label>
+              <input type="date" id="maint-tglSelesai" name="tglSelesai" class="ios-input w-full">
+            </div>
           </div>
 
-          <div>
-            <textarea id="keterangan" name="keterangan" rows="2" class="ios-input w-full"
-              placeholder="Keterangan tambahan..."></textarea>
-          </div>
-        </div>
+          <button type="submit" id="btnSubmitMaint"
+            class="ios-btn bg-gray-800 text-white w-full py-3.5 shadow-md flex justify-center items-center gap-2">
+            <i data-lucide="save" class="w-4 h-4"></i> SIMPAN TIKET
+          </button>
+        </form>
+      </section>
 
-        <button type="submit" id="btnSubmitDaily"
-          class="ios-btn bg-red-600 text-white w-full py-3.5 shadow-md shadow-red-200 flex justify-center items-center gap-2">
-          <i data-lucide="send" class="w-4 h-4"></i> SUBMIT DAILY CHECK
-        </button>
-      </form>
-    </section>
+      <!-- ================= LAPORAN PAGE ================= -->
+      <section id="page-report" class="page-section hidden animate-fade-in">
+        <header class="mb-5">
+          <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Unduh Laporan</h1>
+          <p class="text-sm text-gray-500 dark:text-slate-400">Unduh data laporan operasional.</p>
+        </header>
 
-    <!-- ================= MAINTENANCE PAGE ================= -->
-    <section id="page-maint" class="page-section hidden animate-fade-in">
-      <header class="mb-5">
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Maintenance</h1>
-        <p class="text-sm text-gray-500 dark:text-slate-400">Log preventive maintenance.</p>
-      </header>
-
-      <form id="maintenanceForm" class="space-y-4">
         <div class="glass-panel p-5 space-y-4">
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label
-                class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1 tracking-wider">Tgl
-                Lapor</label>
-              <input type="date" id="maint-tglLapor" name="tglLapor" class="ios-input w-full font-medium" required>
+          <div class="text-center py-8">
+            <i data-lucide="file-spreadsheet" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
+            <h3 class="font-semibold text-slate-600 dark:text-slate-300">Modul Laporan</h3>
+            <p class="text-xs text-slate-400 mt-1">Pilih opsi di bawah untuk mengunduh laporan.</p>
+          </div>
+
+          <div class="space-y-3">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+              <h4 class="font-bold text-sm mb-2">Laporan Daily Check</h4>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" onclick="downloadReport('daily')"
+                  class="ios-btn-secondary text-xs flex justify-center items-center gap-1.5 py-2"><i
+                    data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-500"></i> CSV</button>
+                <button type="button" onclick="downloadPDFReport('daily', event)"
+                  class="ios-btn-secondary text-xs flex justify-center items-center gap-1.5 py-2"><i
+                    data-lucide="file-text" class="w-4 h-4 text-red-500"></i> PDF</button>
+              </div>
             </div>
-            <div>
-              <label
-                class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1 tracking-wider">Status</label>
-              <div class="ios-select-wrapper">
-                <select id="maint-statusTiket" name="statusTiket" class="ios-input w-full font-medium">
-                  <option value="Open">Open</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Closed">Closed</option>
-                </select>
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+              <h4 class="font-bold text-sm mb-2">Laporan Maintenance</h4>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" onclick="downloadReport('maint')"
+                  class="ios-btn-secondary text-xs flex justify-center items-center gap-1.5 py-2"><i
+                    data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-500"></i> CSV</button>
+                <button type="button" onclick="downloadPDFReport('maint', event)"
+                  class="ios-btn-secondary text-xs flex justify-center items-center gap-1.5 py-2"><i
+                    data-lucide="file-text" class="w-4 h-4 text-red-500"></i> PDF</button>
               </div>
             </div>
           </div>
-
-          <div class="ios-select-wrapper">
-            <select id="maint-gateId" name="gateId" class="ios-input w-full font-medium" required>
-              <option value="" disabled selected>Pilih Gate...</option>
-            </select>
-          </div>
-
-          <div id="hw-container-maint" class="space-y-2">
-            <div class="ios-select-wrapper flex gap-2 hw-item items-center">
-              <select name="hardware" class="ios-input w-full font-medium hw-select" required>
-                <option value="" disabled selected>Pilih Hardware...</option>
-              </select>
-            </div>
-          </div>
-          <button type="button" id="btnAddHwMaint"
-            class="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1.5 p-1 active:scale-95 transition-transform"><i
-              data-lucide="plus-circle" class="w-4 h-4"></i> Tambah Hardware Lain</button>
-
-          <div>
-            <textarea id="maint-masalah" name="masalah" rows="2" class="ios-input w-full" required
-              placeholder="Deskripsi kendala..."></textarea>
-          </div>
-
-          <div>
-            <textarea id="maint-tindakan" name="tindakan" rows="2" class="ios-input w-full"
-              placeholder="Tindakan yang telah dilakukan..."></textarea>
-          </div>
-
-          <div>
-            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1 ml-1">Tgl Selesai</label>
-            <input type="date" id="maint-tglSelesai" name="tglSelesai" class="ios-input w-full">
-          </div>
         </div>
+      </section>
 
-        <button type="submit" id="btnSubmitMaint"
-          class="ios-btn bg-gray-800 text-white w-full py-3.5 shadow-md flex justify-center items-center gap-2">
-          <i data-lucide="save" class="w-4 h-4"></i> SIMPAN TIKET
-        </button>
-      </form>
-    </section>
+    </main>
 
-    <!-- ================= LAPORAN PAGE ================= -->
-    <section id="page-report" class="page-section hidden animate-fade-in">
-      <header class="mb-5">
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Unduh Laporan</h1>
-        <p class="text-sm text-gray-500 dark:text-slate-400">Unduh data laporan operasional.</p>
-      </header>
-
-      <div class="glass-panel p-5 space-y-4">
-        <div class="text-center py-8">
-          <i data-lucide="file-spreadsheet" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
-          <h3 class="font-semibold text-slate-600 dark:text-slate-300">Modul Laporan</h3>
-          <p class="text-xs text-slate-400 mt-1">Pilih opsi di bawah untuk mengunduh laporan.</p>
-        </div>
-
-        <div class="space-y-3">
-          <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-            <h4 class="font-bold text-sm mb-2">Laporan Daily Check</h4>
-            <div class="grid grid-cols-2 gap-2">
-              <button type="button" onclick="downloadReport('daily')" class="ios-btn-secondary text-xs flex justify-center items-center gap-1.5 py-2"><i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-500"></i> CSV</button>
-              <button type="button" onclick="downloadPDFReport('daily', event)" class="ios-btn-secondary text-xs flex justify-center items-center gap-1.5 py-2"><i data-lucide="file-text" class="w-4 h-4 text-red-500"></i> PDF</button>
-            </div>
-          </div>
-          <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-            <h4 class="font-bold text-sm mb-2">Laporan Maintenance</h4>
-            <div class="grid grid-cols-2 gap-2">
-              <button type="button" onclick="downloadReport('maint')" class="ios-btn-secondary text-xs flex justify-center items-center gap-1.5 py-2"><i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-500"></i> CSV</button>
-              <button type="button" onclick="downloadPDFReport('maint', event)" class="ios-btn-secondary text-xs flex justify-center items-center gap-1.5 py-2"><i data-lucide="file-text" class="w-4 h-4 text-red-500"></i> PDF</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- Bottom Navigation Menu -->
-  <div id="bottomNav"
-    class="hidden shrink-0 sticky bottom-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border-t border-white/40 dark:border-slate-700/50 justify-around items-center w-full pt-3 pb-5 px-2 z-[90] rounded-t-[28px] shadow-[0_-20px_40px_-10px_rgba(0,0,0,0.1)]">
-    <button class="nav-btn text-red-600 dark:text-red-500 flex flex-col items-center p-2 w-16"
-      data-target="page-dashboard">
-      <i data-lucide="layout-dashboard" class="w-[22px] h-[22px] mb-1"></i>
-      <span class="text-[10px] font-medium">Dashboard</span>
-    </button>
-    <button
-      class="nav-btn text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 flex flex-col items-center p-2 w-16"
-      data-target="page-daily">
-      <i data-lucide="clipboard-check" class="w-[22px] h-[22px] mb-1"></i>
-      <span class="text-[10px] font-medium">Daily</span>
-    </button>
-    <button
-      class="nav-btn text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 flex flex-col items-center p-2 w-16"
-      data-target="page-maint">
-      <i data-lucide="wrench" class="w-[22px] h-[22px] mb-1"></i>
-      <span class="text-[10px] font-medium">Maint.</span>
-    </button>
-    <button
-      class="nav-btn text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 flex flex-col items-center p-2 w-16"
-      data-target="page-report">
-      <i data-lucide="file-down" class="w-[22px] h-[22px] mb-1"></i>
-      <span class="text-[10px] font-medium">Laporan</span>
-    </button>
-  </div>
+    <!-- Bottom Navigation Menu -->
+    <div id="bottomNav"
+      class="hidden shrink-0 sticky bottom-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border-t border-white/40 dark:border-slate-700/50 justify-around items-center w-full pt-3 pb-5 px-2 z-[90] rounded-t-[28px] shadow-[0_-20px_40px_-10px_rgba(0,0,0,0.1)]">
+      <button class="nav-btn text-red-600 dark:text-red-500 flex flex-col items-center p-2 w-16"
+        data-target="page-dashboard">
+        <i data-lucide="layout-dashboard" class="w-[22px] h-[22px] mb-1"></i>
+        <span class="text-[10px] font-medium">Dashboard</span>
+      </button>
+      <button
+        class="nav-btn text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 flex flex-col items-center p-2 w-16"
+        data-target="page-daily">
+        <i data-lucide="clipboard-check" class="w-[22px] h-[22px] mb-1"></i>
+        <span class="text-[10px] font-medium">Daily</span>
+      </button>
+      <button
+        class="nav-btn text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 flex flex-col items-center p-2 w-16"
+        data-target="page-maint">
+        <i data-lucide="wrench" class="w-[22px] h-[22px] mb-1"></i>
+        <span class="text-[10px] font-medium">Maint.</span>
+      </button>
+      <button
+        class="nav-btn text-slate-400 dark:text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 flex flex-col items-center p-2 w-16"
+        data-target="page-report">
+        <i data-lucide="file-down" class="w-[22px] h-[22px] mb-1"></i>
+        <span class="text-[10px] font-medium">Laporan</span>
+      </button>
+    </div>
 
   </div><!-- end full screen flex wrapper -->
 
@@ -422,8 +446,7 @@
   <!-- Issue Modal -->
   <div id="issueModal"
     class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4 modal-overlay">
-    <div
-      class="bg-white dark:bg-slate-800 rounded-[28px] p-6 w-full max-w-sm shadow-2xl modal-content"
+    <div class="bg-white dark:bg-slate-800 rounded-[28px] p-6 w-full max-w-sm shadow-2xl modal-content"
       id="issueModalContent">
       <div class="flex justify-between items-center mb-4">
         <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100 flex items-center gap-2"><i data-lucide="info"
@@ -453,7 +476,8 @@
     <div class="relative w-32 h-32 mb-6">
       <div class="absolute inset-0 bg-slate-200 dark:bg-slate-700 rounded-full animate-ping opacity-50"></div>
       <div class="relative flex items-center justify-center w-full h-full animate-pulse">
-        <img src="Berlian-Manyar-Sejahtera-New-Thumbnail.webp" alt="BMS Logo" class="w-full h-full object-contain drop-shadow-xl">
+        <img src="Berlian-Manyar-Sejahtera-New-Thumbnail.webp" alt="BMS Logo"
+          class="w-full h-full object-contain drop-shadow-xl">
       </div>
     </div>
     <h1 class="text-2xl font-bold text-slate-800 dark:text-white mb-2 tracking-tight">GateOps</h1>

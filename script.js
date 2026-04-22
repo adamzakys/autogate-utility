@@ -143,19 +143,16 @@ async function fetchData(isInitial = false) {
 }
 
 function populateStartPage(data) {
-  const startPetugas = document.getElementById('start-petugas');
-  const startLokasi = document.getElementById('start-lokasi');
-
   // Populate Petugas
   let officerOpts = '<option value="" disabled selected>Pilih Petugas...</option>';
   data.officers.forEach(name => officerOpts += `<option value="${name}">${name}</option>`);
-  startPetugas.innerHTML = officerOpts;
+  refreshTomSelect('start-petugas', officerOpts);
 
   // Populate Unique Lokasi
   const uniqueLokasi = [...new Set(data.gates.map(g => g.lokasi))];
   let lokasiOpts = '<option value="" disabled selected>Pilih Lokasi Tugas...</option>';
   uniqueLokasi.forEach(loc => lokasiOpts += `<option value="${loc}">${loc}</option>`);
-  startLokasi.innerHTML = lokasiOpts;
+  refreshTomSelect('start-lokasi', lokasiOpts);
 }
 
 // ================= LOGIN LOGIC =================
@@ -195,18 +192,16 @@ function applySessionFilter() {
   // Filter Gates by Location
   const filteredGates = data.gates.filter(g => g.lokasi === sessionLokasi);
 
-  const gateSelect = document.getElementById("gateId");
-  const maintGateSelect = document.getElementById("maint-gateId");
   let gateOpts = '<option value="" disabled selected>Pilih Gate...</option>';
   filteredGates.forEach(g => gateOpts += `<option value="${g.id}">${g.id} - ${g.nama}</option>`);
-  gateSelect.innerHTML = gateOpts;
-  maintGateSelect.innerHTML = gateOpts;
+  refreshTomSelect('gateId', gateOpts);
+  refreshTomSelect('maint-gateId', gateOpts);
 
   // Populate Hardware
   window.hardwareOptions = '<option value="" disabled selected>Pilih Hardware...</option>';
   data.hardwares.forEach(hw => window.hardwareOptions += `<option value="${hw}">${hw}</option>`);
   document.querySelectorAll('.hw-select').forEach(sel => {
-    sel.innerHTML = window.hardwareOptions;
+    refreshTomSelectEl(sel, window.hardwareOptions);
   });
 
   // Filter Dashboard Stats
@@ -447,7 +442,36 @@ function processImageWithWatermark(file, watermarkText) {
   });
 }
 
-// ================= FORM SUBMISSIONS =================
+// ================= FORM SUBMISSIONS & UI LOGIC =================
+const maintStatusTiket = document.getElementById('maint-statusTiket');
+const maintTindakanContainer = document.getElementById('maint-tindakan-container');
+const maintTglSelesaiContainer = document.getElementById('maint-tglSelesai-container');
+const maintTindakanInput = document.getElementById('maint-tindakan');
+const maintTglSelesaiInput = document.getElementById('maint-tglSelesai');
+
+function toggleMaintFields() {
+  if (!maintStatusTiket || !maintTindakanContainer || !maintTglSelesaiContainer) return;
+  if (maintStatusTiket.value === 'Closed') {
+    maintTindakanContainer.classList.remove('hidden');
+    maintTglSelesaiContainer.classList.remove('hidden');
+    maintTindakanInput.required = true;
+    maintTglSelesaiInput.required = true;
+  } else {
+    maintTindakanContainer.classList.add('hidden');
+    maintTglSelesaiContainer.classList.add('hidden');
+    maintTindakanInput.required = false;
+    maintTglSelesaiInput.required = false;
+    maintTindakanInput.value = '';
+    maintTglSelesaiInput.value = '';
+  }
+}
+
+if (maintStatusTiket) {
+  maintStatusTiket.addEventListener('change', toggleMaintFields);
+  // Run once on load to set initial state
+  document.addEventListener('DOMContentLoaded', toggleMaintFields);
+}
+
 function toggleButtonLoading(btn, isLoading) {
   if (isLoading) {
     btn.disabled = true;
@@ -617,12 +641,36 @@ function addHwSelect(containerId) {
   `;
   container.appendChild(div);
   lucide.createIcons();
+  initTomSelect(div.querySelector('select'));
 }
 
 document.getElementById('btnAddHwDaily').addEventListener('click', () => addHwSelect('hw-container-daily'));
 document.getElementById('btnAddHwMaint').addEventListener('click', () => addHwSelect('hw-container-maint'));
 
 // ================= UTILITIES & EXPORTS =================
+function initTomSelect(el) {
+  if (el.tomselect) return;
+  el.parentElement.classList.add('has-ts');
+  new TomSelect(el, {
+    create: false,
+    placeholder: el.getAttribute('placeholder') || "Pilih opsi...",
+  });
+}
+
+function refreshTomSelect(elId, htmlOpts) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  refreshTomSelectEl(el, htmlOpts);
+}
+
+function refreshTomSelectEl(el, htmlOpts) {
+  if (el.tomselect) {
+    el.tomselect.destroy();
+  }
+  el.innerHTML = htmlOpts;
+  initTomSelect(el);
+}
+
 function openModalAnim(modal) {
   modal.classList.remove('hidden');
   if (modal.id === 'cameraModal') modal.classList.add('flex');

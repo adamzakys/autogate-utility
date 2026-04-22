@@ -172,6 +172,36 @@ function submitDailyCheck(formData, fileDataArray) {
         // Abaikan error permission email agar data tetap berhasil tersimpan
         console.log("Email error: " + mailError.toString());
       }
+      
+      // AUTO-TICKETING LOGIC
+      try {
+        const maintSheet = ss.getSheetByName("LOG_MAINTENANCE");
+        if (maintSheet) {
+          const maintData = maintSheet.getDataRange().getValues();
+          let ticketExists = false;
+          // Cek dari bawah (terbaru) apakah sudah ada tiket Open untuk Gate & Hardware ini
+          for (let i = maintData.length - 1; i > 0; i--) {
+            if (maintData[i][2] === formData.gateId && maintData[i][3] === formData.hardware && (maintData[i][8] === 'Open' || maintData[i][8] === 'In Progress')) {
+              ticketExists = true;
+              break;
+            }
+          }
+          
+          if (!ticketExists) {
+            const idTiket = "MT-" + Utilities.formatDate(timestamp, "GMT+7", "yyyyMMddHHmmss");
+            const tglLapor = Utilities.formatDate(timestamp, "GMT+7", "yyyy-MM-dd");
+            const ket = formData.keterangan || "Temuan otomatis dari Daily Check (" + formData.status + ")";
+            const watermarkMaint = `System Auto | Gate: ${formData.gateId} | Tiket: ${idTiket}`;
+            
+            maintSheet.appendRow([
+              idTiket, tglLapor, formData.gateId, formData.hardware, ket,
+              "", "", formData.petugas, "Open", watermarkMaint
+            ]);
+          }
+        }
+      } catch (ticketError) {
+        console.log("Auto-ticket error: " + ticketError.toString());
+      }
     }
 
     return { success: true, message: "Data Daily Check berhasil disimpan!" };
@@ -191,24 +221,54 @@ function submitMaintenance(formData) {
     
     const timestamp = new Date();
     const tglLapor = formData.tglLapor || Utilities.formatDate(timestamp, "GMT+7", "yyyy-MM-dd");
-    const idTiket = "MT-" + Utilities.formatDate(timestamp, "GMT+7", "yyyyMMddHHmmss");
     
-    const watermark = `Teknisi: ${formData.teknisi} | Gate: ${formData.gateId} | Tiket: ${idTiket}`;
+    const maintData = sheet.getDataRange().getValues();
+    let targetRowIndex = -1;
+    let existingIdTiket = "";
+    
+    // Cari tiket yang masih Open/In Progress untuk Gate dan Hardware ini
+    for (let i = maintData.length - 1; i > 0; i--) {
+      if (maintData[i][2] === formData.gateId && maintData[i][3] === formData.hardware && maintData[i][8] !== 'Closed') {
+        targetRowIndex = i + 1; // getRange is 1-indexed
+        existingIdTiket = maintData[i][0];
+        break;
+      }
+    }
+    
+    if (targetRowIndex !== -1) {
+      // UPDATE TIKET YANG ADA
+      const oldMasalah = maintData[targetRowIndex - 1][4];
+      let newMasalah = formData.masalah;
+      if (oldMasalah && newMasalah && oldMasalah !== newMasalah) {
+        newMasalah = oldMasalah + "\nUpdate: " + newMasalah;
+      } else if (!newMasalah) {
+        newMasalah = oldMasalah;
+      }
+      
+      sheet.getRange(targetRowIndex, 5).setValue(newMasalah); // Masalah
+      sheet.getRange(targetRowIndex, 6).setValue(formData.tglSelesai || ""); // Tgl Selesai
+      sheet.getRange(targetRowIndex, 7).setValue(formData.tindakan || ""); // Tindakan
+      sheet.getRange(targetRowIndex, 8).setValue(formData.teknisi); // Teknisi
+      sheet.getRange(targetRowIndex, 9).setValue(formData.statusTiket); // Status
+      
+      const watermark = `Updated by: ${formData.teknisi} | Gate: ${formData.gateId} | Tiket: ${existingIdTiket} | Waktu: ${timestamp}`;
+      sheet.getRange(targetRowIndex, 10).setValue(watermark);
+      
+      return { success: true, message: "Tiket Maintenance berhasil diupdate!" };
+      
+    } else {
+      // BUAT TIKET BARU JIKA TIDAK DITEMUKAN
+      const idTiket = "MT-" + Utilities.formatDate(timestamp, "GMT+7", "yyyyMMddHHmmss");
+      const watermark = `Teknisi: ${formData.teknisi} | Gate: ${formData.gateId} | Tiket: ${idTiket}`;
 
-    sheet.appendRow([
-      idTiket,
-      tglLapor,
-      formData.gateId,
-      formData.hardware,
-      formData.masalah,
-      formData.tglSelesai,
-      formData.tindakan,
-      formData.teknisi,
-      formData.statusTiket,
-      watermark
-    ]);
+      sheet.appendRow([
+        idTiket, tglLapor, formData.gateId, formData.hardware, formData.masalah,
+        formData.tglSelesai || "", formData.tindakan || "", formData.teknisi,
+        formData.statusTiket, watermark
+      ]);
 
-    return { success: true, message: "Tiket Maintenance berhasil dibuat/diupdate!" };
+      return { success: true, message: "Tiket Maintenance baru berhasil dibuat!" };
+    }
   } catch (e) {
     return { success: false, message: e.toString() };
   }

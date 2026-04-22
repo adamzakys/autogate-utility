@@ -686,65 +686,82 @@ function closeModalAnim(modal) {
   }, 300);
 }
 
-window.downloadReport = function(type) {
-  const url = `${GAS_URL}?action=export&type=${type}`;
-  window.open(url, '_blank');
-};
+window.downloadDashboardReport = async function(type, format, event) {
+  const startDate = document.getElementById('reportStartDate').value;
+  const endDate = document.getElementById('reportEndDate').value;
+  
+  if (!startDate || !endDate) {
+    alert("Harap pilih Dari Tanggal dan Sampai Tanggal terlebih dahulu!");
+    return;
+  }
+  
+  if (startDate > endDate) {
+    alert("Tanggal awal tidak boleh lebih besar dari tanggal akhir!");
+    return;
+  }
 
-window.downloadPDFReport = async function(type, event) {
   const btn = event.currentTarget;
   const oldHtml = btn.innerHTML;
-  btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Memuat...`;
+  btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Memproses...`;
   btn.disabled = true;
 
   try {
-    const url = `${GAS_URL}?action=export&type=${type}`;
-    const response = await fetch(url);
-    const csvText = await response.text();
+    const url = `${GAS_URL}?action=exportDashboard&type=${type}&format=${format}&start=${startDate}&end=${endDate}`;
     
-    const rows = [];
-    const lines = csvText.split('\n');
-    for (let line of lines) {
-      if(!line.trim()) continue;
-      const regex = /"([^"]*)"/g;
-      const matches = [];
-      let match;
-      while ((match = regex.exec(line)) !== null) {
-        matches.push(match[1]);
+    if (format === 'csv') {
+      window.open(url, '_blank');
+    } else if (format === 'pdf') {
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      if (!data.success) throw new Error(data.error || "Gagal mengambil data dari server");
+      
+      const rows = data.data; 
+      
+      if (!window.jspdf || !window.jspdf.jsPDF) throw new Error("Library jsPDF tidak termuat. Cek koneksi internet.");
+      const doc = new window.jspdf.jsPDF('landscape');
+      
+      const titleReport = type === 'maint' ? 'LAPORAN PERBAIKAN (MAINTENANCE)' : 'LAPORAN TEMUAN OPERASIONAL';
+      
+      // Judul Laporan (Warna Oranye)
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(15);
+      doc.setTextColor(249, 115, 22); // Orange-500
+      doc.text(titleReport, 14, 20);
+      
+      // Subjudul (Abu-abu)
+      doc.setTextColor(100, 116, 139); // Slate-500
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(`Periode  : ${startDate} s/d ${endDate}`, 14, 28);
+      doc.text(`Dicetak  : ${new Date().toLocaleString('id-ID')}`, 14, 33);
+      
+      // Garis Pembatas
+      doc.setDrawColor(226, 232, 240); // Slate-200
+      doc.setLineWidth(0.5);
+      doc.line(14, 37, 283, 37);
+      
+      if (rows.length > 1) { 
+        const headers = rows.shift();
+        doc.autoTable({
+          head: [headers],
+          body: rows,
+          startY: 42,
+          theme: 'grid',
+          styles: { fontSize: 7.5, cellPadding: 2, textColor: [51, 65, 85] },
+          headStyles: { fillColor: [249, 115, 22], textColor: [255, 255, 255], fontStyle: 'bold' }, // Oranye
+          alternateRowStyles: { fillColor: [248, 250, 252] }, // Slate-50 zebra striping
+          columnStyles: type === 'maint' ? { 4: { cellWidth: 40 }, 5: { cellWidth: 40 } } : {}
+        });
+      } else {
+        doc.text("Tidak ada data pada rentang tanggal ini.", 14, 45);
       }
-      rows.push(matches);
+      
+      doc.save(`Laporan_${type}_${startDate}_to_${endDate}.pdf`);
     }
-    
-    if (!window.jspdf || !window.jspdf.jsPDF) throw new Error("jsPDF not loaded");
-    const doc = new window.jspdf.jsPDF('landscape');
-    const title = type === 'maint' ? 'Laporan Maintenance Autogate' : 'Laporan Daily Check Autogate';
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text(title, 14, 20);
-    
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, 28);
-    
-    if (rows.length > 0) {
-      const headers = rows.shift();
-      doc.autoTable({
-        head: [headers],
-        body: rows,
-        startY: 35,
-        theme: 'grid',
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [220, 38, 38] }
-      });
-    } else {
-      doc.text("Tidak ada data.", 14, 40);
-    }
-    
-    doc.save(`${title.replace(/ /g, '_')}.pdf`);
   } catch (err) {
     console.error(err);
-    alert("Gagal mengunduh PDF. Pastikan internet stabil.");
+    alert("Gagal memproses laporan: " + err.message);
   } finally {
     btn.innerHTML = oldHtml;
     btn.disabled = false;

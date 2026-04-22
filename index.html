@@ -359,33 +359,53 @@
         </header>
 
         <div class="glass-panel p-5 space-y-4">
-          <div class="text-center py-8">
-            <i data-lucide="file-spreadsheet" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
-            <h3 class="font-semibold text-slate-600 dark:text-slate-300">Modul Laporan</h3>
-            <p class="text-xs text-slate-400 mt-1">Pilih opsi di bawah untuk mengunduh laporan.</p>
+          <div class="text-center py-6">
+            <i data-lucide="file-bar-chart" class="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3"></i>
+            <h3 class="font-semibold text-slate-800 dark:text-slate-100">Ekspor Laporan</h3>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Unduh laporan operasional berdasarkan rentang tanggal.</p>
           </div>
 
-          <div class="space-y-3">
-            <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-              <h4 class="font-bold text-sm mb-2">Laporan Daily Check</h4>
-              <div class="grid grid-cols-2 gap-2">
-                <button type="button" onclick="downloadReport('daily')"
-                  class="ios-btn-secondary text-xs flex justify-center items-center gap-1.5 py-2"><i
-                    data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-500"></i> CSV</button>
-                <button type="button" onclick="downloadPDFReport('daily', event)"
-                  class="ios-btn-secondary text-xs flex justify-center items-center gap-1.5 py-2"><i
-                    data-lucide="file-text" class="w-4 h-4 text-red-500"></i> PDF</button>
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
+            <div class="grid grid-cols-2 gap-3 mb-5">
+              <div>
+                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1 ml-1">Dari Tanggal</label>
+                <input type="date" id="reportStartDate" class="ios-input w-full text-sm py-2">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1 ml-1">Sampai Tanggal</label>
+                <input type="date" id="reportEndDate" class="ios-input w-full text-sm py-2">
               </div>
             </div>
-            <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-              <h4 class="font-bold text-sm mb-2">Laporan Maintenance</h4>
-              <div class="grid grid-cols-2 gap-2">
-                <button type="button" onclick="downloadReport('maint')"
-                  class="ios-btn-secondary text-xs flex justify-center items-center gap-1.5 py-2"><i
-                    data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-500"></i> CSV</button>
-                <button type="button" onclick="downloadPDFReport('maint', event)"
-                  class="ios-btn-secondary text-xs flex justify-center items-center gap-1.5 py-2"><i
-                    data-lucide="file-text" class="w-4 h-4 text-red-500"></i> PDF</button>
+
+            <div class="space-y-4">
+              <!-- Laporan Temuan -->
+              <div class="border border-slate-100 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-900/50">
+                <h4 class="font-bold text-xs text-slate-700 dark:text-slate-300 mb-2">1. Laporan Temuan (Daily Check)</h4>
+                <div class="grid grid-cols-2 gap-2">
+                  <button type="button" onclick="downloadDashboardReport('daily', 'csv', event)"
+                    class="ios-btn-secondary text-xs flex justify-center items-center gap-1.5 py-2.5">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-500"></i> CSV
+                  </button>
+                  <button type="button" onclick="downloadDashboardReport('daily', 'pdf', event)"
+                    class="ios-btn-secondary text-xs flex justify-center items-center gap-1.5 py-2.5">
+                    <i data-lucide="file-text" class="w-4 h-4 text-red-500"></i> PDF
+                  </button>
+                </div>
+              </div>
+
+              <!-- Laporan Perbaikan -->
+              <div class="border border-slate-100 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-900/50">
+                <h4 class="font-bold text-xs text-slate-700 dark:text-slate-300 mb-2">2. Laporan Perbaikan (Maintenance)</h4>
+                <div class="grid grid-cols-2 gap-2">
+                  <button type="button" onclick="downloadDashboardReport('maint', 'csv', event)"
+                    class="ios-btn-secondary text-xs flex justify-center items-center gap-1.5 py-2.5">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-500"></i> CSV
+                  </button>
+                  <button type="button" onclick="downloadDashboardReport('maint', 'pdf', event)"
+                    class="ios-btn-secondary text-xs flex justify-center items-center gap-1.5 py-2.5">
+                    <i data-lucide="file-text" class="w-4 h-4 text-red-500"></i> PDF
+                  </button>
+                </div>
               </div>
             </div>
           </div>

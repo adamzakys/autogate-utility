@@ -9,16 +9,87 @@ const FOLDER_ID = "1wy0nUvvf0ANSqu38_J_VLRl13LjgroGt";
  */
 function doGet(e) {
   try {
-    if (e.parameter && e.parameter.action === 'export') {
+    if (e.parameter && e.parameter.action === 'exportDashboard') {
+      const startParam = e.parameter.start; // format yyyy-mm-dd
+      const endParam = e.parameter.end;
+      const typeParam = e.parameter.type || 'daily';
+      
       const ss = SpreadsheetApp.openById(SS_ID);
-      const sheetName = e.parameter.type === 'maint' ? "LOG_MAINTENANCE" : "LOG_DAILY_CHECK";
-      const sheet = ss.getSheetByName(sheetName);
-      if (!sheet) throw new Error("Sheet not found");
-      const data = sheet.getDataRange().getDisplayValues();
-      const csvContent = data.map(row => row.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(",")).join("\n");
-      return ContentService.createTextOutput(csvContent)
-        .setMimeType(ContentService.MimeType.CSV)
-        .downloadAsFile(sheetName + ".csv");
+      
+      // Map Nama Gate
+      const gatesData = ss.getSheetByName("REF_GATES").getDataRange().getValues();
+      const gateMap = {}; 
+      for (let i = 1; i < gatesData.length; i++) {
+        gateMap[gatesData[i][0]] = gatesData[i][1];
+      }
+      
+      let results = [];
+      let fileNamePrefix = "";
+      
+      if (typeParam === 'daily') {
+        const dailyData = ss.getSheetByName("LOG_DAILY_CHECK").getDataRange().getValues();
+        const headers = ["Waktu", "Nama Gate", "Hardware", "Status", "Petugas", "Keterangan"];
+        results.push(headers);
+        fileNamePrefix = "Laporan_Temuan";
+        
+        for (let i = 1; i < dailyData.length; i++) {
+          const row = dailyData[i];
+          if (!row[1]) continue;
+          
+          let tglStr = "";
+          if (row[1] instanceof Date) {
+            tglStr = Utilities.formatDate(row[1], "GMT+7", "yyyy-MM-dd");
+          } else {
+            tglStr = String(row[1]).substring(0, 10);
+          }
+          
+          if (tglStr >= startParam && tglStr <= endParam && (row[4] === 'FAIL' || row[4] === 'WARNING')) {
+            results.push([
+              row[0] instanceof Date ? Utilities.formatDate(row[0], "GMT+7", "dd/MM/yyyy HH:mm") : row[0],
+              gateMap[row[2]] || row[2], 
+              row[3], row[4], row[5], row[6]  
+            ]);
+          }
+        }
+      } else if (typeParam === 'maint') {
+        const maintData = ss.getSheetByName("LOG_MAINTENANCE").getDataRange().getValues();
+        const headers = ["Tgl Lapor", "Nama Gate", "Hardware", "Status Tiket", "Masalah", "Tindakan", "Tgl Selesai", "Teknisi"];
+        results.push(headers);
+        fileNamePrefix = "Laporan_Perbaikan";
+        
+        for (let i = 1; i < maintData.length; i++) {
+          const row = maintData[i];
+          if (!row[1]) continue;
+          
+          let tglStr = "";
+          if (row[1] instanceof Date) {
+            tglStr = Utilities.formatDate(row[1], "GMT+7", "yyyy-MM-dd");
+          } else {
+            tglStr = String(row[1]).substring(0, 10);
+          }
+          
+          // Kolom: 0=ID, 1=TglLapor, 2=Gate, 3=HW, 4=Masalah, 5=TglSelesai, 6=Tindakan, 7=Teknisi, 8=Status
+          if (tglStr >= startParam && tglStr <= endParam) { 
+            results.push([
+              row[1] instanceof Date ? Utilities.formatDate(row[1], "GMT+7", "yyyy-MM-dd") : row[1],
+              gateMap[row[2]] || row[2],
+              row[3], row[8], row[4], row[6], 
+              row[5] instanceof Date ? Utilities.formatDate(row[5], "GMT+7", "yyyy-MM-dd") : row[5], 
+              row[7]
+            ]);
+          }
+        }
+      }
+      
+      if (e.parameter.format === 'csv') {
+        const csvContent = results.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(",")).join("\n");
+        return ContentService.createTextOutput(csvContent)
+          .setMimeType(ContentService.MimeType.CSV)
+          .downloadAsFile(`${fileNamePrefix}_${startParam}_to_${endParam}.csv`);
+      } else {
+        return ContentService.createTextOutput(JSON.stringify({ success: true, data: results }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
     }
 
     const data = getInitialData();
@@ -70,7 +141,9 @@ function getInitialData() {
   gateRows.forEach(r => {
     if (r[0]) {
       const lokasi = r[2] ? String(r[2]).trim() : "Lainnya";
-      gateMap[r[0]] = lokasi;
+      gateMap[r[0]] = lokasi; // Berdasarkan ID
+      gateMap[r[1]] = lokasi; // Berdasarkan Nama
+      gateMap[`${r[0]} - ${r[1]}`] = lokasi; // Berdasarkan format gabungan
       gatesList.push({ id: r[0], nama: r[1], lokasi: lokasi });
     }
   });

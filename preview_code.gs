@@ -186,8 +186,37 @@ function getInitialData() {
         };
       });
 
-      todayLogs = parsedLogs.filter(log => log.tglStr === today);
-      recentIssues = parsedLogs.filter(log => log.status === 'FAIL' || log.status === 'WARNING').slice(-20);
+      const latestStateMap = {};
+      
+      parsedLogs.forEach(log => {
+        // Pisahkan multi-hardware (contoh: "Kamera LPR Depan, Barrier Gate") menjadi terpisah
+        const hws = String(log.hardware).split(',').map(s => s.trim()).filter(Boolean);
+        
+        hws.forEach(hw => {
+          const key = `${log.gateId}_${hw}`;
+          // Timpa data lama, karena loop berjalan urut dari atas ke bawah (kronologis)
+          // Maka state terakhir yang akan bertahan di object ini
+          latestStateMap[key] = {
+            gateId: log.gateId,
+            lokasi: log.lokasi,
+            hardware: hw,
+            status: log.status,
+            date: log.date,
+            tglStr: log.tglStr,
+            petugas: log.petugas,
+            keterangan: log.keterangan,
+            foto: log.foto
+          };
+        });
+      });
+
+      const currentStateLogs = Object.values(latestStateMap);
+      
+      // todayLogs sekarang diganti konsepnya menjadi currentStateLogs (Semua data terkini)
+      todayLogs = currentStateLogs;
+      
+      // recentIssues HANYA menampilkan alat yang saat ini (terkini) statusnya FAIL atau WARNING
+      recentIssues = currentStateLogs.filter(log => log.status === 'FAIL' || log.status === 'WARNING');
     }
   }
 
@@ -195,7 +224,7 @@ function getInitialData() {
     officers: officers.slice(1).map(r => r[1]).filter(String),
     gates: gatesList,
     hardwares: hardwares.slice(1).map(r => r[1]).filter(String),
-    todayLogs: todayLogs,
+    todayLogs: todayLogs, // Array state terkini
     recentIssues: recentIssues
   };
 }

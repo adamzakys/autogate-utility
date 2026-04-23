@@ -148,85 +148,193 @@ function getInitialData() {
     }
   });
 
-  // Proses Logs
-  let todayLogs = [];
-  let recentIssues = [];
-  const dailySheet = ss.getSheetByName("LOG_DAILY_CHECK");
+  // Proses Baseline & Timeline Events
+  const allHardwares = hardwares.slice(1).map(r => String(r[1]).trim()).filter(Boolean);
+  const latestStateMap = {};
   
+  // 1. BASELINE: Semua alat di-set PASS pada awalnya
+  gatesList.forEach(g => {
+    allHardwares.forEach(hw => {
+      latestStateMap[`${g.id}_${hw}`] = {
+        gateId: g.id, lokasi: g.lokasi, hardware: hw, 
+        status: 'PASS', date: '-', tglStr: '-', petugas: '-', keterangan: 'Baseline (Belum ada riwayat)', foto: ''
+      };
+    });
+  });
+
+  const allEvents = [];
+
+  // 2. Kumpulkan Log Pengecekan Harian (Daily Check)
+  const dailySheet = ss.getSheetByName("LOG_DAILY_CHECK");
   if (dailySheet) {
-    const dailyLogs = dailySheet.getDataRange().getValues();
-    if (dailyLogs.length > 1) {
-      const logsData = dailyLogs.slice(1);
-      const today = Utilities.formatDate(new Date(), "GMT+7", "yyyy-MM-dd");
+    const dailyData = dailySheet.getDataRange().getValues().slice(1);
+    dailyData.forEach(row => {
+      if (!row[0]) return;
+      let ts = row[0] instanceof Date ? row[0].getTime() : new Date(row[0]).getTime();
+      if (isNaN(ts)) ts = Date.now(); // Fallback aman
       
-      const parsedLogs = logsData.map(row => {
-        let timestampObj = row[0];
-        if (!(timestampObj instanceof Date)) timestampObj = new Date(row[0]);
-
-        let dateObj = row[1];
-        if (!(dateObj instanceof Date)) dateObj = new Date(row[1]);
-        
-        let tglStr = "";
-        if (!isNaN(dateObj.getTime())) {
-          tglStr = Utilities.formatDate(dateObj, "GMT+7", "yyyy-MM-dd");
-        } else {
-          tglStr = String(row[1]).substring(0, 10);
-        }
-        
-        return {
-          date: !isNaN(timestampObj.getTime()) ? Utilities.formatDate(timestampObj, "GMT+7", "dd/MM/yyyy HH:mm") : row[1],
-          tglStr: tglStr,
-          gateId: row[2],
-          lokasi: gateMap[row[2]] || "Lainnya",
-          hardware: row[3],
-          status: row[4],
-          petugas: row[5],
-          keterangan: row[6] || "-",
-          foto: row[7] || ""
-        };
+      allEvents.push({
+        time: ts,
+        type: 'DAILY', gateId: row[2], hardware: row[3], status: row[4],
+        date: row[0] instanceof Date ? Utilities.formatDate(row[0], "GMT+7", "dd/MM/yyyy HH:mm") : row[1],
+        tglStr: row[1] instanceof Date ? Utilities.formatDate(row[1], "GMT+7", "yyyy-MM-dd") : String(row[1]).substring(0, 10),
+        petugas: row[5], keterangan: row[6], foto: row[7]
       });
-
-      const latestStateMap = {};
-      
-      parsedLogs.forEach(log => {
-        // Pisahkan multi-hardware (contoh: "Kamera LPR Depan, Barrier Gate") menjadi terpisah
-        const hws = String(log.hardware).split(',').map(s => s.trim()).filter(Boolean);
-        
-        hws.forEach(hw => {
-          const key = `${log.gateId}_${hw}`;
-          // Timpa data lama, karena loop berjalan urut dari atas ke bawah (kronologis)
-          // Maka state terakhir yang akan bertahan di object ini
-          latestStateMap[key] = {
-            gateId: log.gateId,
-            lokasi: log.lokasi,
-            hardware: hw,
-            status: log.status,
-            date: log.date,
-            tglStr: log.tglStr,
-            petugas: log.petugas,
-            keterangan: log.keterangan,
-            foto: log.foto
-          };
-        });
-      });
-
-      const currentStateLogs = Object.values(latestStateMap);
-      
-      // todayLogs sekarang diganti konsepnya menjadi currentStateLogs (Semua data terkini)
-      todayLogs = currentStateLogs;
-      
-      // recentIssues HANYA menampilkan alat yang saat ini (terkini) statusnya FAIL atau WARNING
-      recentIssues = currentStateLogs.filter(log => log.status === 'FAIL' || log.status === 'WARNING');
-    }
+    });
   }
+
+  // 3. Kumpulkan Log Perbaikan (Maintenance)
+  const maintSheet = ss.getSheetByName("LOG_MAINTENANCE");
+  if (maintSheet) {
+    const maintData = maintSheet.getDataRange().getValues().slice(1);
+    maintData.forEach(row => {
+      if (!row[0]) return;
+      const status = String(row[8]).toUpperCase();
+      let eventTime = 0;
+      
+      let dTime = row[5]; // Tgl Selesai
+      if (!dTime) dTime = row[1]; // Fallback ke Tgl Lapor
+      if (!dTime) dTime = row[0]; // Fallback ke Timestamp pembuatan tiket
+      eventTime = dTime instanceof Date ? dTime.getTime() : new Date(dTime).getTime();
+      if (isNaN(eventTime)) eventTime = Date.now();
+
+      if (status === 'CLOSED') {
+         allEvents.push({
+           time: eventTime,
+           type: 'MAINT', gateId: row[2], hardware: row[3], status: 'PASS', // Tiket Closed = Alat Sembuh
+           date: row[5] instanceof Date ? Utilities.formatDate(row[5], "GMT+7", "dd/MM/yyyy HH:mm") : (row[5] || "-"),
+           tglStr: row[5] instanceof Date ? Utilities.formatDate(row[5], "GMT+7", "yyyy-MM-dd") : String(row[5] || "").substring(0, 10),
+           petugas: row[7], keterangan: 'Perbaikan Selesai: ' + row[6], foto: ''
+         });
+      } else {
+         let openTime = row[1];
+         if (!openTime) openTime = row[0];
+         let evOpenTime = openTime instanceof Date ? openTime.getTime() : new Date(openTime).getTime();
+         if (isNaN(evOpenTime)) evOpenTime = Date.now();
+         
+         allEvents.push({
+           time: evOpenTime,
+           type: 'MAINT', gateId: row[2], hardware: row[3], status: 'FAIL', // Tiket Open = Alat Rusak
+           date: row[1] instanceof Date ? Utilities.formatDate(row[1], "GMT+7", "dd/MM/yyyy HH:mm") : (row[1] || "-"),
+           tglStr: row[1] instanceof Date ? Utilities.formatDate(row[1], "GMT+7", "yyyy-MM-dd") : String(row[1] || "").substring(0, 10),
+           petugas: row[7], keterangan: 'Tiket Open: ' + row[4], foto: ''
+         });
+      }
+    });
+  }
+
+  // 4. Urutkan Waktu Kejadian dari terlama ke terbaru (Chronological)
+  allEvents.sort((a, b) => a.time - b.time);
+
+  // 5. Simulasikan Kejadian (Event Sourcing) untuk mendapatkan State Terkini
+  allEvents.forEach(ev => {
+    const hws = String(ev.hardware).split(',').map(s => s.trim()).filter(Boolean);
+    
+    if (ev.type === 'DAILY' && hws.includes("Semua Hardware Normal")) {
+       // Pengecekan umum: Tidak boleh menimpa alat yang saat ini masih FAIL (tiket belum ditutup)
+       allHardwares.forEach(hw => {
+          const key = `${ev.gateId}_${hw}`;
+          if (latestStateMap[key] && latestStateMap[key].status === 'PASS') {
+             latestStateMap[key].date = ev.date;
+             latestStateMap[key].tglStr = ev.tglStr;
+             latestStateMap[key].petugas = ev.petugas;
+          }
+       });
+    } else {
+       // Pengecekan spesifik / Laporan Rusak / Laporan Perbaikan
+       hws.forEach(hw => {
+          const key = `${ev.gateId}_${hw}`;
+          if (latestStateMap[key]) {
+            latestStateMap[key].status = ev.status;
+            latestStateMap[key].date = ev.date;
+            latestStateMap[key].tglStr = ev.tglStr;
+            latestStateMap[key].petugas = ev.petugas;
+            latestStateMap[key].keterangan = ev.keterangan;
+          }
+       });
+    }
+  });
+
+  // 6. BUILD FINAL STATE DARI REF_HARDWARE SEBAGAI SOURCE OF TRUTH UTAMA
+  const hwSheetData = ss.getSheetByName("REF_HARDWARE").getDataRange().getValues().slice(1);
+  const finalStateLogs = [];
+  
+  hwSheetData.forEach(row => {
+    if (!row[1]) return;
+    const hwName = String(row[1]).trim();
+    const statusAktif = String(row[4] || "PASS").toUpperCase(); // Kolom E
+    const lokasiAktif = String(row[5] || "").trim() || "Lainnya"; // Kolom F
+    const gateIdRef = String(row[6] || "").trim(); // Kolom G (ID_Gate)
+    
+    // Cari metadata (keterangan, petugas, tanggal) dari event sourcing
+    let latestInfo = null;
+    const keys = Object.keys(latestStateMap);
+    for (let k of keys) {
+      if (k.endsWith(`_${hwName}`)) {
+        latestInfo = latestStateMap[k];
+        break;
+      }
+    }
+    
+    finalStateLogs.push({
+      gateId: gateIdRef || (latestInfo ? latestInfo.gateId : "-"),
+      lokasi: lokasiAktif, // Lokasi absolut dari REF_HARDWARE Kolom F
+      hardware: hwName,
+      status: statusAktif, // Status absolut dari REF_HARDWARE Kolom E
+      date: latestInfo ? latestInfo.date : "-",
+      tglStr: latestInfo ? latestInfo.tglStr : "-",
+      petugas: latestInfo ? latestInfo.petugas : "-",
+      keterangan: latestInfo ? latestInfo.keterangan : "-",
+      foto: latestInfo ? latestInfo.foto : ""
+    });
+  });
+
+  const currentStateLogs = finalStateLogs;
+  const recentIssues = currentStateLogs.filter(log => log.status === 'FAIL' || log.status === 'WARNING');
+
 
   return {
     officers: officers.slice(1).map(r => r[1]).filter(String),
     gates: gatesList,
-    hardwares: hardwares.slice(1).map(r => r[1]).filter(String),
-    todayLogs: todayLogs, // Array state terkini
+    hardwares: ["Semua Hardware Normal", ...hardwares.slice(1).map(r => r[1]).filter(String)],
+    todayLogs: currentStateLogs, // Array state terkini
     recentIssues: recentIssues
   };
+}
+
+/**
+ * Helper untuk mengupdate Status_Aktif di REF_HARDWARE Kolom E (Index 5)
+ */
+function updateHardwareStatus(ss, hardwareString, newStatus, gateId) {
+  try {
+    const hwSheet = ss.getSheetByName("REF_HARDWARE");
+    if (!hwSheet) return;
+    const hwData = hwSheet.getDataRange().getValues();
+    const submittedHws = String(hardwareString).split(',').map(s => s.trim()).filter(Boolean);
+    
+    for (let i = 1; i < hwData.length; i++) {
+      const hwName = String(hwData[i][1]).trim();
+      const hwGateId = String(hwData[i][6] || "").trim(); // Kolom G (ID_Gate)
+      let shouldUpdate = false;
+      
+      if (submittedHws.includes("Semua Hardware Normal")) {
+        // Cocokkan berdasarkan ID_Gate di Kolom G
+        if (hwGateId === String(gateId).trim()) {
+          shouldUpdate = true;
+        }
+      } else {
+        if (submittedHws.includes(hwName)) {
+          shouldUpdate = true;
+        }
+      }
+      
+      if (shouldUpdate) {
+        hwSheet.getRange(i + 1, 5).setValue(newStatus); // Kolom E (Status_Aktif)
+      }
+    }
+  } catch (e) {
+    console.log("Gagal update REF_HARDWARE: " + e.toString());
+  }
 }
 
 /**
@@ -271,7 +379,6 @@ function submitDailyCheck(formData, fileDataArray) {
       try {
         sendUrgentNotification(formData, fileUrlStr, 'DAILY CHECK');
       } catch (mailError) {
-        // Abaikan error permission email agar data tetap berhasil tersimpan
         console.log("Email error: " + mailError.toString());
       }
       
@@ -280,31 +387,37 @@ function submitDailyCheck(formData, fileDataArray) {
         const maintSheet = ss.getSheetByName("LOG_MAINTENANCE");
         if (maintSheet) {
           const maintData = maintSheet.getDataRange().getValues();
-          let ticketExists = false;
-          // Cek dari bawah (terbaru) apakah sudah ada tiket Open untuk Gate & Hardware ini
-          for (let i = maintData.length - 1; i > 0; i--) {
-            if (maintData[i][2] === formData.gateId && maintData[i][3] === formData.hardware && (maintData[i][8] === 'Open' || maintData[i][8] === 'In Progress')) {
-              ticketExists = true;
-              break;
-            }
-          }
+          const submittedHws = String(formData.hardware).split(',').map(s => s.trim()).filter(Boolean);
           
-          if (!ticketExists) {
-            const idTiket = "MT-" + Utilities.formatDate(timestamp, "GMT+7", "yyyyMMddHHmmss");
-            const tglLapor = Utilities.formatDate(timestamp, "GMT+7", "yyyy-MM-dd");
-            const ket = formData.keterangan || "Temuan otomatis dari Daily Check (" + formData.status + ")";
-            const watermarkMaint = `System Auto | Gate: ${formData.gateId} | Tiket: ${idTiket}`;
-            
-            maintSheet.appendRow([
-              idTiket, tglLapor, formData.gateId, formData.hardware, ket,
-              "", "", formData.petugas, "Open", watermarkMaint
-            ]);
+          if (!submittedHws.includes("Semua Hardware Normal")) {
+            submittedHws.forEach(hw => {
+              let ticketExists = false;
+              for (let i = maintData.length - 1; i > 0; i--) {
+                if (maintData[i][2] === formData.gateId && maintData[i][3] === hw && (maintData[i][8] === 'Open' || maintData[i][8] === 'In Progress')) {
+                  ticketExists = true;
+                  break;
+                }
+              }
+              if (!ticketExists) {
+                maintSheet.appendRow([
+                  `TKT-${Utilities.formatDate(timestamp, "GMT+7", "yyyyMMddHHmmss")}-${Math.floor(Math.random() * 1000)}`,
+                  Utilities.formatDate(timestamp, "GMT+7", "yyyy-MM-dd"),
+                  formData.gateId,
+                  hw,
+                  formData.keterangan || "Ditemukan saat pengecekan harian",
+                  "", "", "", "Open"
+                ]);
+              }
+            });
           }
         }
       } catch (ticketError) {
         console.log("Auto-ticket error: " + ticketError.toString());
       }
     }
+
+    // UPDATE STATUS AKTIF KE REF_HARDWARE (KOLOM E)
+    updateHardwareStatus(ss, formData.hardware, formData.status, formData.gateId);
 
     return { success: true, message: "Data Daily Check berhasil disimpan!" };
   } catch (e) {
@@ -356,6 +469,12 @@ function submitMaintenance(formData) {
       const watermark = `Updated by: ${formData.teknisi} | Gate: ${formData.gateId} | Tiket: ${existingIdTiket} | Waktu: ${timestamp}`;
       sheet.getRange(targetRowIndex, 10).setValue(watermark);
       
+      // UPDATE STATUS AKTIF KE REF_HARDWARE (KOLOM E)
+      let finalStatus = formData.statusTiket;
+      if (finalStatus.toUpperCase() === 'CLOSED') finalStatus = 'PASS';
+      else if (finalStatus.toUpperCase() === 'OPEN' || finalStatus.toUpperCase() === 'IN PROGRESS') finalStatus = 'FAIL';
+      updateHardwareStatus(ss, formData.hardware, finalStatus, formData.gateId);
+      
       return { success: true, message: "Tiket Maintenance berhasil diupdate!" };
       
     } else {
@@ -368,6 +487,12 @@ function submitMaintenance(formData) {
         formData.tglSelesai || "", formData.tindakan || "", formData.teknisi,
         formData.statusTiket, watermark
       ]);
+
+      // UPDATE STATUS AKTIF KE REF_HARDWARE (KOLOM E)
+      let finalStatus = formData.statusTiket;
+      if (finalStatus.toUpperCase() === 'CLOSED') finalStatus = 'PASS';
+      else if (finalStatus.toUpperCase() === 'OPEN' || finalStatus.toUpperCase() === 'IN PROGRESS') finalStatus = 'FAIL';
+      updateHardwareStatus(ss, formData.hardware, finalStatus, formData.gateId);
 
       return { success: true, message: "Tiket Maintenance baru berhasil dibuat!" };
     }

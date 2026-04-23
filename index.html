@@ -144,11 +144,7 @@
         </header>
 
         <!-- Stats -->
-        <div class="grid grid-cols-3 gap-3 mb-6">
-          <div class="glass-panel p-3 text-center">
-            <p class="text-[10px] text-gray-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Pass</p>
-            <p class="text-2xl font-bold text-green-500" id="stat-pass">-</p>
-          </div>
+        <div class="grid grid-cols-2 gap-3 mb-6">
           <div class="glass-panel p-3 text-center">
             <p class="text-[10px] text-gray-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Warn</p>
             <p class="text-2xl font-bold text-yellow-500" id="stat-warn">-</p>
@@ -162,7 +158,7 @@
         <!-- Chart -->
         <div class="glass-panel p-5 mb-6">
           <h3 class="font-semibold text-sm text-gray-700 dark:text-slate-100 mb-4 flex items-center gap-2">
-            <i data-lucide="pie-chart" class="w-4 h-4 text-blue-500"></i> Distribusi Kondisi Terkini
+            <i data-lucide="bar-chart-2" class="w-4 h-4 text-blue-500"></i> Kesehatan Gate (Isu per Gate)
           </h3>
           <div class="relative h-48 w-full flex justify-center">
             <canvas id="conditionChart"></canvas>
@@ -362,7 +358,8 @@
           <div class="text-center py-6">
             <i data-lucide="file-bar-chart" class="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3"></i>
             <h3 class="font-semibold text-slate-800 dark:text-slate-100">Ekspor Laporan</h3>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Unduh laporan operasional berdasarkan rentang tanggal.</p>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Unduh laporan operasional berdasarkan rentang
+              tanggal.</p>
           </div>
 
           <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
@@ -379,8 +376,10 @@
 
             <div class="space-y-4">
               <!-- Laporan Temuan -->
-              <div class="border border-slate-100 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-900/50">
-                <h4 class="font-bold text-xs text-slate-700 dark:text-slate-300 mb-2">1. Laporan Temuan (Daily Check)</h4>
+              <div
+                class="border border-slate-100 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-900/50">
+                <h4 class="font-bold text-xs text-slate-700 dark:text-slate-300 mb-2">1. Laporan Temuan (Daily Check)
+                </h4>
                 <div class="grid grid-cols-2 gap-2">
                   <button type="button" onclick="downloadDashboardReport('daily', 'csv', event)"
                     class="ios-btn-secondary text-xs flex justify-center items-center gap-1.5 py-2.5">
@@ -394,8 +393,10 @@
               </div>
 
               <!-- Laporan Perbaikan -->
-              <div class="border border-slate-100 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-900/50">
-                <h4 class="font-bold text-xs text-slate-700 dark:text-slate-300 mb-2">2. Laporan Perbaikan (Maintenance)</h4>
+              <div
+                class="border border-slate-100 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-900/50">
+                <h4 class="font-bold text-xs text-slate-700 dark:text-slate-300 mb-2">2. Laporan Perbaikan (Maintenance)
+                </h4>
                 <div class="grid grid-cols-2 gap-2">
                   <button type="button" onclick="downloadDashboardReport('maint', 'csv', event)"
                     class="ios-btn-secondary text-xs flex justify-center items-center gap-1.5 py-2.5">
@@ -502,6 +503,12 @@
     </div>
     <h1 class="text-2xl font-bold text-slate-800 dark:text-white mb-2 tracking-tight">GateOps</h1>
     <p class="text-sm text-slate-500 dark:text-slate-400 font-medium" id="startupText">Menyinkronkan data server...</p>
+  </div>
+
+  <!-- Custom Toast Notification -->
+  <div id="toastNotification" class="fixed top-5 left-1/2 -translate-x-1/2 z-[200] hidden items-center gap-3 bg-slate-800 text-white px-5 py-3 rounded-full shadow-2xl transition-all duration-300 transform -translate-y-10 opacity-0 pointer-events-none">
+    <i data-lucide="info" id="toastIcon" class="w-5 h-5 text-blue-400"></i>
+    <span id="toastMessage" class="text-sm font-medium">Message</span>
   </div>
 
   <script src="script.js"></script>

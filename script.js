@@ -27,6 +27,43 @@ let globalData = null;
 let sessionPetugas = localStorage.getItem('sessionPetugas') || "";
 let sessionLokasi = localStorage.getItem('sessionLokasi') || "";
 
+// ================= TOAST NOTIFICATION =================
+window.showToast = function(msg, type = 'info') {
+  const toast = document.getElementById('toastNotification');
+  const msgEl = document.getElementById('toastMessage');
+  const iconEl = document.getElementById('toastIcon');
+  
+  if(!toast) return alert(msg);
+  
+  msgEl.textContent = msg;
+  let iconClass = "w-5 h-5 ";
+  if (type === 'success') {
+    iconEl.setAttribute('data-lucide', 'check-circle');
+    iconClass += 'text-emerald-400';
+  } else if (type === 'error') {
+    iconEl.setAttribute('data-lucide', 'alert-circle');
+    iconClass += 'text-red-400';
+  } else {
+    iconEl.setAttribute('data-lucide', 'info');
+    iconClass += 'text-blue-400';
+  }
+  iconEl.className = iconClass;
+  lucide.createIcons();
+  
+  toast.classList.remove('hidden');
+  
+  setTimeout(() => {
+    toast.classList.remove('-translate-y-10', 'opacity-0', 'pointer-events-none');
+    toast.classList.add('translate-y-0', 'opacity-100');
+  }, 10);
+  
+  setTimeout(() => {
+    toast.classList.remove('translate-y-0', 'opacity-100');
+    toast.classList.add('-translate-y-10', 'opacity-0', 'pointer-events-none');
+    setTimeout(() => toast.classList.add('hidden'), 300);
+  }, 3500);
+};
+
 // ================= NAVIGATION LOGIC =================
 const navBtns = document.querySelectorAll('.nav-btn');
 const pages = document.querySelectorAll('.page-section');
@@ -148,8 +185,8 @@ function populateStartPage(data) {
   data.officers.forEach(name => officerOpts += `<option value="${name}">${name}</option>`);
   refreshTomSelect('start-petugas', officerOpts);
 
-  // Populate Unique Lokasi
-  const uniqueLokasi = [...new Set(data.gates.map(g => g.lokasi))];
+  // Populate Unique Lokasi dari REF_HARDWARE (Kolom F)
+  const uniqueLokasi = [...new Set(data.todayLogs.map(log => log.lokasi).filter(loc => loc && loc !== "Lainnya"))];
   let lokasiOpts = '<option value="" disabled selected>Pilih Lokasi Tugas...</option>';
   uniqueLokasi.forEach(loc => lokasiOpts += `<option value="${loc}">${loc}</option>`);
   refreshTomSelect('start-lokasi', lokasiOpts);
@@ -162,7 +199,7 @@ document.getElementById('startForm').addEventListener('submit', (e) => {
   const lok = document.getElementById('start-lokasi').value;
 
   if (!pet || !lok) {
-    alert("Harap pilih Petugas dan Lokasi Tugas terlebih dahulu!");
+    showToast("Harap pilih Petugas dan Lokasi Tugas terlebih dahulu!", "error");
     return;
   }
 
@@ -209,18 +246,16 @@ function applySessionFilter() {
   document.getElementById('dash-lokasi-isu').textContent = sessionLokasi;
 
   const filteredTodayLogs = data.todayLogs.filter(log => log.lokasi === sessionLokasi);
-  let pass = 0, warn = 0, fail = 0;
+  let warn = 0, fail = 0;
   filteredTodayLogs.forEach(log => {
-    if (log.status === 'PASS') pass++;
     if (log.status === 'WARNING') warn++;
     if (log.status === 'FAIL') fail++;
   });
 
-  document.getElementById('stat-pass').textContent = pass;
   document.getElementById('stat-warn').textContent = warn;
   document.getElementById('stat-fail').textContent = fail;
 
-  updateChart(pass, warn, fail);
+  updateChart(filteredTodayLogs);
 
   // Filter Recent Issues
   window.currentFilteredIssues = data.recentIssues.filter(log => log.lokasi === sessionLokasi).slice(0, 5); // top 5
@@ -253,41 +288,70 @@ function applySessionFilter() {
   }
 }
 
-function updateChart(pass, warn, fail) {
+function updateChart(logs) {
+  const canvas = document.getElementById('conditionChart');
+  if (!canvas) return;
+  
   if (conditionChartInstance) {
     conditionChartInstance.destroy();
     conditionChartInstance = null;
   }
   
-  const chartParent = document.getElementById('conditionChart').parentElement;
-  if (pass === 0 && warn === 0 && fail === 0) {
-    chartParent.innerHTML = `<div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400"><i data-lucide="inbox" class="w-8 h-8 mb-2 opacity-50"></i><p class="text-xs">Belum ada data hari ini</p></div><canvas id="conditionChart" class="hidden"></canvas>`;
+  const issues = logs.filter(l => l.status !== 'PASS');
+  const chartParent = canvas.parentElement;
+
+  if (issues.length === 0) {
+    chartParent.innerHTML = `<div class="absolute inset-0 flex flex-col items-center justify-center text-slate-400"><i data-lucide="check-circle" class="w-8 h-8 mb-2 text-emerald-500 opacity-50"></i><p class="text-xs">Semua Gate Normal</p></div><canvas id="conditionChart" class="hidden"></canvas>`;
     lucide.createIcons();
     return;
   } else {
-    if(chartParent.querySelector('div.absolute')) {
+    // Restore canvas if it was hidden
+    if (canvas.classList.contains('hidden') || chartParent.querySelector('div.absolute')) {
       chartParent.innerHTML = `<canvas id="conditionChart"></canvas>`;
+      const newCanvas = document.getElementById('conditionChart');
+      return updateChart(logs); // Re-run with new canvas
     }
   }
 
-  const ctx = document.getElementById('conditionChart').getContext('2d');
-  conditionChartInstance = new Chart(ctx, {
-    type: 'doughnut',
+  // Group by Gate ID
+  const gateIssues = {};
+  issues.forEach(iss => {
+    gateIssues[iss.gateId] = (gateIssues[iss.gateId] || 0) + 1;
+  });
+
+  const labels = Object.keys(gateIssues).sort();
+  const values = labels.map(l => gateIssues[l]);
+
+  conditionChartInstance = new Chart(canvas, {
+    type: 'bar',
     data: {
-      labels: ['Pass', 'Warn', 'Fail'],
+      labels: labels,
       datasets: [{
-        data: [pass, warn, fail],
-        backgroundColor: ['#22c55e', '#eab308', '#ef4444'],
-        borderWidth: 0,
-        hoverOffset: 4
+        label: 'Jumlah Isu',
+        data: values,
+        backgroundColor: '#ef4444',
+        borderRadius: 8,
+        barThickness: 20
       }]
     },
     options: {
+      indexAxis: 'y',
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '75%',
       plugins: {
-        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { family: 'Inter', size: 11 } } }
+        legend: { display: false },
+        tooltip: { enabled: true }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: { stepSize: 1, color: '#94a3b8' },
+          grid: { display: false }
+        },
+        y: {
+          ticks: { color: '#94a3b8', font: { weight: 'bold' } },
+          grid: { display: false }
+        }
       }
     }
   });
@@ -316,7 +380,7 @@ btnOpenCam.addEventListener('click', async () => {
     });
     videoElement.srcObject = currentStream;
   } catch (err) {
-    alert("Kamera tidak dapat diakses. Mohon izinkan akses kamera atau gunakan Galeri.");
+    showToast("Kamera tidak dapat diakses. Mohon izinkan akses kamera atau gunakan Galeri.", "error");
     cameraModal.classList.add('hidden');
   }
 });
@@ -485,7 +549,7 @@ function toggleButtonLoading(btn, isLoading) {
 
 document.getElementById('dailyCheckForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  if (isPhotoRequired && currentPhotoFiles.length === 0) return alert("Status WARNING/FAIL mewajibkan Anda melampirkan foto!");
+  if (isPhotoRequired && currentPhotoFiles.length === 0) return showToast("Status WARNING/FAIL mewajibkan Anda melampirkan foto!", "error");
 
   const form = e.target;
   const btnSubmit = document.getElementById('btnSubmitDaily');
@@ -514,7 +578,7 @@ document.getElementById('dailyCheckForm').addEventListener('submit', async (e) =
       fileDataArray = await Promise.all(promises);
     } catch (error) {
       toggleButtonLoading(btnSubmit, false);
-      return alert("Gagal memproses foto.");
+      return showToast("Gagal memproses foto.", "error");
     }
   }
 
@@ -556,15 +620,15 @@ async function sendPayload(payload, formElement, btnElement) {
     toggleButtonLoading(btnElement, false);
 
     if (result.success) {
-      alert("Berhasil: " + result.message);
+      showToast("Berhasil: " + result.message, "success");
       formElement.reset();
       fetchData(false); // Reload data stat di background
     } else {
-      alert("Gagal: " + result.message);
+      showToast("Gagal: " + result.message, "error");
     }
   } catch (error) {
     toggleButtonLoading(btnElement, false);
-    alert("Terjadi kesalahan jaringan: " + error.message);
+      showToast("Terjadi kesalahan jaringan: " + error.message, "error");
   }
 }
 
@@ -691,12 +755,12 @@ window.downloadDashboardReport = async function(type, format, event) {
   const endDate = document.getElementById('reportEndDate').value;
   
   if (!startDate || !endDate) {
-    alert("Harap pilih Dari Tanggal dan Sampai Tanggal terlebih dahulu!");
+    showToast("Harap pilih Dari Tanggal dan Sampai Tanggal terlebih dahulu!", "error");
     return;
   }
   
   if (startDate > endDate) {
-    alert("Tanggal awal tidak boleh lebih besar dari tanggal akhir!");
+    showToast("Tanggal awal tidak boleh lebih besar dari tanggal akhir!", "error");
     return;
   }
 
@@ -761,7 +825,7 @@ window.downloadDashboardReport = async function(type, format, event) {
     }
   } catch (err) {
     console.error(err);
-    alert("Gagal memproses laporan: " + err.message);
+      showToast("Gagal memproses laporan: " + err.message, "error");
   } finally {
     btn.innerHTML = oldHtml;
     btn.disabled = false;

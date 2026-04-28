@@ -234,9 +234,10 @@ function applySessionFilter() {
   refreshTomSelect('gateId', gateOpts);
   refreshTomSelect('maint-gateId', gateOpts);
 
-  // Populate Hardware
-  window.hardwareOptions = '<option value="" disabled selected>Pilih Hardware...</option>';
-  data.hardwares.forEach(hw => window.hardwareOptions += `<option value="${hw}">${hw}</option>`);
+  // Initial Hardware State (must select gate first)
+  window.hardwareOptions = '<option value="" disabled selected>Silakan pilih Gate terlebih dahulu...</option>';
+  window.dailyHardwareOptions = null;
+  window.maintHardwareOptions = null;
   document.querySelectorAll('.hw-select').forEach(sel => {
     refreshTomSelectEl(sel, window.hardwareOptions);
   });
@@ -621,6 +622,22 @@ async function sendPayload(payload, formElement, btnElement) {
 
     if (result.success) {
       showToast("Berhasil: " + result.message, "success");
+      
+      // Trigger Share Dialog
+      const shareData = {
+        title: payload.action === 'dailyCheck' ? 'Laporan Daily Check' : 'Laporan Maintenance',
+        gateId: payload.formData.gateId,
+        hardware: payload.formData.hardware,
+        status: payload.formData.status || payload.formData.statusTiket,
+        petugas: payload.formData.petugas || payload.formData.teknisi,
+        keterangan: payload.formData.keterangan || payload.formData.masalah || payload.formData.tindakan,
+        date: new Date().toLocaleString('id-ID')
+      };
+      
+      setTimeout(() => {
+        showShareDialog(shareData);
+      }, 1000);
+
       formElement.reset();
       fetchData(false); // Reload data stat di background
     } else {
@@ -629,6 +646,82 @@ async function sendPayload(payload, formElement, btnElement) {
   } catch (error) {
     toggleButtonLoading(btnElement, false);
       showToast("Terjadi kesalahan jaringan: " + error.message, "error");
+  }
+}
+
+// ================= SHARE FEATURE =================
+function showShareDialog(data) {
+  const text = `*${data.title}*
+--------------------------
+📅 *Waktu:* ${data.date}
+📍 *Gate:* ${data.gateId}
+🔧 *Hardware:* ${data.hardware}
+📊 *Status:* ${data.status}
+👤 *Petugas:* ${data.petugas}
+📝 *Keterangan:* ${data.keterangan || '-'}
+
+_Laporan dikirim via BMS GateOps_`;
+
+  if (navigator.share) {
+    // Desktop/Mobile Native Share
+    const btnShareNative = document.createElement('button');
+    btnShareNative.className = "ios-btn bg-blue-600 text-white w-full py-3 mt-4 flex items-center justify-center gap-2";
+    btnShareNative.innerHTML = `<i data-lucide="share-2" class="w-4 h-4"></i> Bagikan Laporan`;
+    
+    const container = document.createElement('div');
+    container.id = "shareOverlay";
+    container.className = "fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[150] flex items-center justify-center p-4";
+    container.innerHTML = `
+      <div class="bg-white dark:bg-slate-800 rounded-[28px] p-6 w-full max-w-sm shadow-2xl scale-in">
+        <div class="text-center mb-4">
+          <div class="w-16 h-16 bg-emerald-50 dark:bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-3">
+            <i data-lucide="check-circle" class="w-8 h-8"></i>
+          </div>
+          <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100">Berhasil Dikirim!</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Ingin membagikan ringkasan laporan ini?</p>
+        </div>
+        <div class="space-y-2">
+          <button id="btnShareWA" class="ios-btn-secondary w-full flex items-center justify-center gap-2 py-3 border-emerald-100 hover:bg-emerald-50">
+            <i data-lucide="message-circle" class="w-4 h-4 text-emerald-500"></i> WhatsApp
+          </button>
+          <button id="btnShareNative" class="ios-btn bg-slate-800 dark:bg-slate-700 text-white w-full flex items-center justify-center gap-2 py-3">
+            <i data-lucide="share-2" class="w-4 h-4"></i> Opsi Lainnya
+          </button>
+          <button id="btnSkipShare" class="w-full text-slate-400 text-xs font-medium py-2 mt-2">Selesai</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(container);
+    lucide.createIcons();
+
+    document.getElementById('btnShareWA').onclick = () => {
+      const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    };
+
+    document.getElementById('btnShareNative').onclick = async () => {
+      try {
+        await navigator.share({
+          title: data.title,
+          text: text
+        });
+      } catch (err) {
+        console.log("Share cancelled or failed");
+      }
+    };
+
+    document.getElementById('btnSkipShare').onclick = () => {
+      container.remove();
+    };
+    
+    container.onclick = (e) => {
+      if(e.target === container) container.remove();
+    };
+
+  } else {
+    // Fallback for browsers without navigator.share
+    const urlWA = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(urlWA, '_blank');
   }
 }
 
@@ -693,11 +786,13 @@ window.closeIssueModal = closeIssueModal;
 // ================= DYNAMIC HARDWARE SELECTS =================
 function addHwSelect(containerId) {
   const container = document.getElementById(containerId);
+  const opts = (containerId === 'hw-container-daily') ? (window.dailyHardwareOptions || window.hardwareOptions) : (window.maintHardwareOptions || window.hardwareOptions);
+  
   const div = document.createElement('div');
   div.className = "ios-select-wrapper flex gap-2 hw-item items-center mt-2";
   div.innerHTML = `
     <select name="hardware" class="ios-input w-full font-medium hw-select" required>
-      ${window.hardwareOptions || '<option value="" disabled selected>Pilih Hardware...</option>'}
+      ${opts}
     </select>
     <button type="button" class="text-red-500 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg active:scale-95 transition-all shrink-0" onclick="this.parentElement.remove()">
       <i data-lucide="minus-circle" class="w-5 h-5"></i>
@@ -710,6 +805,64 @@ function addHwSelect(containerId) {
 
 document.getElementById('btnAddHwDaily').addEventListener('click', () => addHwSelect('hw-container-daily'));
 document.getElementById('btnAddHwMaint').addEventListener('click', () => addHwSelect('hw-container-maint'));
+
+// Gate Change Listeners for Filtering Hardware
+document.getElementById('gateId').addEventListener('change', (e) => {
+  updateHardwareOptions(e.target.value, 'hw-container-daily', true);
+});
+document.getElementById('maint-gateId').addEventListener('change', (e) => {
+  updateHardwareOptions(e.target.value, 'hw-container-maint', false);
+});
+
+function updateHardwareOptions(gateId, containerId, isDaily) {
+  if (!globalData || !globalData.todayLogs) return;
+  
+  // Filter hardware from todayLogs where gateId matches
+  const hws = [...new Set(globalData.todayLogs
+    .filter(log => String(log.gateId) === String(gateId))
+    .map(log => log.hardware))];
+
+  let opts = '<option value="" disabled selected>Pilih Hardware...</option>';
+  if (isDaily) {
+    opts += '<option value="Semua Hardware Normal">Semua Hardware Normal</option>';
+  }
+  
+  hws.forEach(hw => {
+    if (hw !== "Semua Hardware Normal") {
+      // Find latest status for this hardware in this gate
+      const hwState = globalData.todayLogs.find(log => String(log.gateId) === String(gateId) && log.hardware === hw);
+      const status = hwState ? hwState.status : 'PASS';
+      let statusIndicator = "";
+      if (status === 'FAIL') statusIndicator = "🔴 [FAIL]";
+      else if (status === 'WARNING') statusIndicator = "🟡 [WARN]";
+      else statusIndicator = "🟢 [OK]";
+
+      opts += `<option value="${hw}">${hw} ${statusIndicator}</option>`;
+    }
+  });
+
+  // Store options for the addHwSelect button
+  if (containerId === 'hw-container-daily') {
+    window.dailyHardwareOptions = opts;
+  } else {
+    window.maintHardwareOptions = opts;
+  }
+
+  // Update all existing selects in the container
+  const container = document.getElementById(containerId);
+  const selects = container.querySelectorAll('.hw-select');
+  
+  // If gate changes, it's safer to clear extra rows and reset the first one
+  const items = container.querySelectorAll('.hw-item');
+  items.forEach((item, idx) => {
+    if (idx > 0) {
+      item.remove();
+    } else {
+      const sel = item.querySelector('.hw-select');
+      refreshTomSelectEl(sel, opts);
+    }
+  });
+}
 
 // ================= UTILITIES & EXPORTS =================
 function initTomSelect(el) {

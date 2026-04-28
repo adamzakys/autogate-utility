@@ -238,6 +238,8 @@ function getInitialData() {
              latestStateMap[key].date = ev.date;
              latestStateMap[key].tglStr = ev.tglStr;
              latestStateMap[key].petugas = ev.petugas;
+             latestStateMap[key].keterangan = ev.keterangan;
+             latestStateMap[key].foto = ev.foto || "";
           }
        });
     } else {
@@ -250,6 +252,7 @@ function getInitialData() {
             latestStateMap[key].tglStr = ev.tglStr;
             latestStateMap[key].petugas = ev.petugas;
             latestStateMap[key].keterangan = ev.keterangan;
+            latestStateMap[key].foto = ev.foto || "";
           }
        });
     }
@@ -266,15 +269,9 @@ function getInitialData() {
     const lokasiAktif = String(row[5] || "").trim() || "Lainnya"; // Kolom F
     const gateIdRef = String(row[6] || "").trim(); // Kolom G (ID_Gate)
     
-    // Cari metadata (keterangan, petugas, tanggal) dari event sourcing
-    let latestInfo = null;
-    const keys = Object.keys(latestStateMap);
-    for (let k of keys) {
-      if (k.endsWith(`_${hwName}`)) {
-        latestInfo = latestStateMap[k];
-        break;
-      }
-    }
+    // Cari metadata (keterangan, petugas, tanggal) dari event sourcing secara akurat
+    const key = `${gateIdRef}_${hwName}`;
+    const latestInfo = latestStateMap[key];
     
     finalStateLogs.push({
       gateId: gateIdRef || (latestInfo ? latestInfo.gateId : "-"),
@@ -284,7 +281,7 @@ function getInitialData() {
       date: latestInfo ? latestInfo.date : "-",
       tglStr: latestInfo ? latestInfo.tglStr : "-",
       petugas: latestInfo ? latestInfo.petugas : "-",
-      keterangan: latestInfo ? latestInfo.keterangan : "-",
+      keterangan: latestInfo ? latestInfo.keterangan : "Baseline (Belum ada riwayat)",
       foto: latestInfo ? latestInfo.foto : ""
     });
   });

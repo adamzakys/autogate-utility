@@ -192,12 +192,16 @@
               <i data-lucide="map-pin" class="w-4 h-4 text-rose-500"></i> Lokasi & Hardware
             </h2>
             <div class="space-y-4">
-              <div class="ios-select-wrapper">
-                <select id="gateId" name="gateId" class="ios-input w-full font-medium" required>
-                  <option value="" disabled selected>Pilih Gate...</option>
-                </select>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1 tracking-wider">Pilih Gate</label>
+                <div class="ios-select-wrapper">
+                  <select id="gateId" name="gateId" class="ios-input w-full font-medium" required>
+                    <option value="" disabled selected>Pilih Gate...</option>
+                  </select>
+                </div>
               </div>
               <div id="hw-container-daily" class="space-y-2">
+                <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1 tracking-wider">Hardware / Alat</label>
                 <div class="ios-select-wrapper flex gap-2 hw-item items-center">
                   <select name="hardware" class="ios-input w-full font-medium hw-select" required>
                     <option value="" disabled selected>Pilih Hardware...</option>
@@ -307,13 +311,17 @@
               </div>
             </div>
 
-            <div class="ios-select-wrapper">
-              <select id="maint-gateId" name="gateId" class="ios-input w-full font-medium" required>
-                <option value="" disabled selected>Pilih Gate...</option>
-              </select>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1 tracking-wider">Pilih Gate</label>
+              <div class="ios-select-wrapper">
+                <select id="maint-gateId" name="gateId" class="ios-input w-full font-medium" required>
+                  <option value="" disabled selected>Pilih Gate...</option>
+                </select>
+              </div>
             </div>
 
             <div id="hw-container-maint" class="space-y-2">
+              <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1 ml-1 tracking-wider">Hardware / Alat</label>
               <div class="ios-select-wrapper flex gap-2 hw-item items-center">
                 <select name="hardware" class="ios-input w-full font-medium hw-select" required>
                   <option value="" disabled selected>Pilih Hardware...</option>
@@ -506,7 +514,8 @@
   </div>
 
   <!-- Custom Toast Notification -->
-  <div id="toastNotification" class="fixed top-5 left-1/2 -translate-x-1/2 z-[200] hidden items-center gap-3 bg-slate-800 text-white px-5 py-3 rounded-full shadow-2xl transition-all duration-300 transform -translate-y-10 opacity-0 pointer-events-none">
+  <div id="toastNotification"
+    class="fixed top-5 left-1/2 -translate-x-1/2 z-[200] hidden items-center gap-3 bg-slate-800 text-white px-5 py-3 rounded-full shadow-2xl transition-all duration-300 transform -translate-y-10 opacity-0 pointer-events-none">
     <i data-lucide="info" id="toastIcon" class="w-5 h-5 text-blue-400"></i>
     <span id="toastMessage" class="text-sm font-medium">Message</span>
   </div>

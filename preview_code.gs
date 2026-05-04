@@ -499,7 +499,7 @@ function submitMaintenance(formData) {
 }
 
 /**
- * Fungsi Kirim Email Otomatis
+ * A
  */
 function sendUrgentNotification(data, photoLink, type) {
   const recipient = "email-teknis@perusahaan.com"; 
